@@ -1,0 +1,190 @@
+╔═══════════════════════════════════════════════════════════════════╗
+║       HOSPITAL TOKEN SYSTEM - QUICK REFERENCE & CHECKLIST        ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+🔴 IMMEDIATE ACTION REQUIRED
+═══════════════════════════════════════════════════════════════════
+
+ISSUE: Database connection failed
+ACTION: Fix Supabase credentials
+
+Steps:
+  1. Open: https://app.supabase.com
+  2. Verify your project exists
+  3. Get correct DATABASE_URL from Settings → Database
+  4. Update /backend/.env
+  5. Test: cd backend && npx prisma db push --skip-generate
+
+═══════════════════════════════════════════════════════════════════
+
+✅ COMPLETED
+═══════════════════════════════════════════════════════════════════
+
+[✓] Project cleanup (30+ files deleted)
+[✓] Backend .env created
+[✓] Backend dependencies installed (326 packages)
+[✓] Frontend dependencies installed (161 packages)
+[✓] Prisma client generated
+[✗] Database connection (NEEDS FIX)
+
+═══════════════════════════════════════════════════════════════════
+
+📁 KEY LOCATIONS
+═══════════════════════════════════════════════════════════════════
+
+Backend:
+  /Users/kunalmani/Token1/Token/backend/
+  - .env (environment variables)
+  - src/index.ts (server)
+  - prisma/schema.prisma (database schema)
+
+Frontend:
+  /Users/kunalmani/Token1/Token/frontend/
+  - src/App.tsx (routing)
+  - src/pages/ (dashboards)
+
+Database:
+  - Host: db.oilwihrsslsscojtpghe.supabase.co
+  - Database: postgres
+  - User: postgres
+  - Port: 5432
+
+═══════════════════════════════════════════════════════════════════
+
+📋 COMMON COMMANDS
+═══════════════════════════════════════════════════════════════════
+
+Backend:
+  cd /Users/kunalmani/Token1/Token/backend
+  npm run dev                    # Start server
+  npm run prisma:generate        # Generate Prisma
+  npx prisma db push             # Push schema
+  npm run prisma:seed            # Seed data
+  npx prisma studio              # View database
+
+Frontend:
+  cd /Users/kunalmani/Token1/Token/frontend
+  npm run dev                    # Start dev server
+  npm run build                  # Build production
+
+═══════════════════════════════════════════════════════════════════
+
+🧪 TEST ACCOUNTS (After database setup)
+═══════════════════════════════════════════════════════════════════
+
+Patient:      9000000100 (OTP from console)
+Doctor:       9000000003 (OTP from console)
+Admin:        9000000002 (OTP from console)
+Super Admin:  9000000001 (OTP from console)
+
+Passwords: Not used (OTP authentication only)
+
+═══════════════════════════════════════════════════════════════════
+
+🎯 NEXT STEPS (In Order)
+═══════════════════════════════════════════════════════════════════
+
+1. FIX DATABASE CONNECTION
+   - Go to Supabase dashboard
+   - Update .env DATABASE_URL
+   - Test with: npx prisma db push
+
+2. PUSH SCHEMA
+   cd backend
+   npx prisma db push
+
+3. SEED DATA
+   cd backend
+   npm run prisma:seed
+
+4. START SERVERS
+   Terminal 1: cd backend && npm run dev
+   Terminal 2: cd frontend && npm run dev
+
+5. TEST APPLICATION
+   - Open http://localhost:5173
+   - Login with phone 9000000100
+   - Check backend console for OTP
+
+═══════════════════════════════════════════════════════════════════
+
+📊 SYSTEM ARCHITECTURE
+═══════════════════════════════════════════════════════════════════
+
+Frontend (React)      →  Backend (Express)  →  Database (PostgreSQL)
+http://5173             http://5000            Supabase
+
+APIs: 27 endpoints total
+- Auth (3): send-otp, verify-otp, me
+- Patient (6): hospitals, doctors, book, status, my-appointments
+- Doctor (2): queue, appointments
+- Admin (9): queue management, doctor management, CSV export
+- Super Admin (4): hospital management
+- Payments (3): razorpay integration
+
+═══════════════════════════════════════════════════════════════════
+
+🔧 CONFIGURATION FILES
+═══════════════════════════════════════════════════════════════════
+
+Backend:
+  .env (environment variables - CREATED)
+  .env.example (template reference)
+  tsconfig.json (TypeScript settings)
+  package.json (dependencies)
+
+Frontend:
+  vite.config.ts (build settings)
+  tsconfig.json (TypeScript settings)
+  tailwind.config.js (Tailwind CSS)
+  postcss.config.js (PostCSS)
+  package.json (dependencies)
+
+═══════════════════════════════════════════════════════════════════
+
+⚠️  IMPORTANT SECURITY NOTES
+═══════════════════════════════════════════════════════════════════
+
+1. Never commit .env file to git (already in .gitignore)
+2. Change JWT_SECRET before production deployment
+3. All API keys are for testing - update for production
+4. Use environment-specific .env files (.env.production, etc.)
+
+═══════════════════════════════════════════════════════════════════
+
+🆘 TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════
+
+Problem: "Can't reach database"
+Fix: Verify Supabase credentials, update .env, test connection
+
+Problem: "OTP not sending"
+Fix: Check Fast2SMS API key, verify phone format
+
+Problem: "CORS error when logging in"
+Fix: Ensure backend running on port 5000
+
+Problem: "npm install fails"
+Fix: Delete node_modules, clear cache, reinstall
+      rm -rf node_modules package-lock.json
+      npm install
+
+═══════════════════════════════════════════════════════════════════
+
+📞 DOCUMENTATION FILES
+═══════════════════════════════════════════════════════════════════
+
+README.md              - Project overview
+SETUP.md               - Original setup guide
+CLEAN_SETUP.md         - Comprehensive setup guide (NEW)
+SETUP_PROGRESS.md      - Progress tracker (NEW)
+QUICK_REFERENCE.txt    - This file (NEW)
+SETUP_DATABASE.sql     - Database schema
+INSERT_DEMO_DATA.sql   - Demo data
+
+═══════════════════════════════════════════════════════════════════
+
+✨ Progress: 80% Complete
+   Status: Awaiting Database Connection Fix
+
+═══════════════════════════════════════════════════════════════════

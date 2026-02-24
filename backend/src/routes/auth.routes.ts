@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../index.js';
-import { authenticate, authorize } from '../middleware/auth.js';
+import { authenticate } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { validateSendOtp, validateVerifyOtp } from '../middleware/validation.js';
 import { generateOtp, sendOtpViaSms } from '../services/sms.service.js';
@@ -9,30 +9,29 @@ import { setRedis, getRedis, deleteRedis } from '../services/redis.service.js';
 
 const router = Router();
 
-// Send OTP
+// Send OTP — also tells frontend if user is new or existing
 router.post(
   '/send-otp',
   validateSendOtp,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: any, res: any) => {
     const { phone } = req.body;
 
-    // Generate OTP
     const otp = generateOtp();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    // Store OTP in Redis
+    // Store OTP
     await setRedis(`otp:${phone}`, { code: otp, expiresAt }, 300);
 
-    // In production, uncomment to send real SMS
-    // await sendOtpViaSms(phone, otp);
-
-    // For testing, return OTP (REMOVE IN PRODUCTION)
     console.log(`OTP for ${phone}: ${otp}`);
+
+    // Check if user exists
+    const existingUser = await prisma.user.findUnique({ where: { phone } });
 
     res.json({
       success: true,
       message: 'OTP sent successfully',
-      ...(process.env.NODE_ENV === 'development' && { otp }), // Dev only
+      isNewUser: !existingUser,
+      ...(process.env.NODE_ENV === 'development' && { otp }),
     });
   })
 );
@@ -41,70 +40,63 @@ router.post(
 router.post(
   '/verify-otp',
   validateVerifyOtp,
-  asyncHandler(async (req, res) => {
-    const { phone, otp, name } = req.body;
+  asyncHandler(async (req: any, res: any) => {
+    const { phone, otp, name, age, gender, weight, city } = req.body;
 
-    // Get OTP from Redis
     const storedOtp = await getRedis(`otp:${phone}`);
 
     if (!storedOtp) {
-      return res.status(400).json({ error: 'OTP expired' });
+      return res.status(400).json({ error: 'OTP expired or not sent' });
     }
 
     if (storedOtp.code !== otp) {
       return res.status(400).json({ error: 'Invalid OTP' });
     }
 
-    // Delete OTP
     await deleteRedis(`otp:${phone}`);
 
-    // Check if user exists (graceful fallback for no database)
-    let user;
-    try {
-      user = await prisma.user.findUnique({
-        where: { phone },
-      });
+    // Find or create user
+    let user = await prisma.user.findUnique({ where: { phone } });
 
-      // If not exists, create new patient
-      if (!user) {
-        user = await prisma.user.create({
-          data: {
-            phone,
-            name: name || null,
-            role: 'PATIENT',
-          },
-        });
+    if (!user) {
+      // New user → create as PATIENT with profile
+      if (!name) {
+        return res.status(400).json({ error: 'Name is required for new users' });
       }
-    } catch (error) {
-      // Database unavailable - create demo user
-      console.log('⚠️ Database unavailable, using demo user');
-      user = {
-        id: `demo-${phone}`,
-        phone,
-        name: name || 'Demo User',
-        role: 'PATIENT',
-        hospitalId: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } as any;
+      user = await prisma.user.create({
+        data: {
+          phone,
+          name,
+          age: age ? parseInt(age) : null,
+          gender: gender || null,
+          weight: weight ? parseInt(weight) : null,
+          city: city || null,
+          role: 'PATIENT',
+        } as any,
+      });
     }
 
-    // Generate JWT
+    const u = user as any;
     const token = generateToken({
-      id: user.id,
-      phone: user.phone,
-      role: user.role,
-      hospitalId: user.hospitalId || undefined,
+      id: u.id,
+      phone: u.phone,
+      role: u.role,
+      hospitalId: u.hospitalId ?? undefined,
     });
 
     res.json({
       success: true,
       token,
       user: {
-        id: user.id,
-        phone: user.phone,
-        name: user.name,
-        role: user.role,
+        id: u.id,
+        phone: u.phone,
+        name: u.name,
+        role: u.role,
+        hospitalId: u.hospitalId,
+        age: u.age,
+        gender: u.gender,
+        weight: u.weight,
+        city: u.city,
       },
     });
   })
@@ -114,45 +106,29 @@ router.post(
 router.get(
   '/me',
   authenticate,
-  asyncHandler(async (req, res) => {
-    try {
-      const user = await prisma.user.findUnique({
-        where: { id: (req as any).user.id },
-      });
+  asyncHandler(async (req: any, res: any) => {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+    });
 
-      if (!user) {
-        // Return user from token if database unavailable
-        return res.json({
-          user: {
-            id: (req as any).user.id,
-            phone: (req as any).user.phone,
-            role: (req as any).user.role,
-            hospitalId: (req as any).user.hospitalId,
-          },
-        });
-      }
-
-      res.json({
-        user: {
-          id: user.id,
-          phone: user.phone,
-          name: user.name,
-          role: user.role,
-          hospitalId: user.hospitalId,
-        },
-      });
-    } catch (error) {
-      // Database unavailable - return user from token
-      console.log('⚠️ Database unavailable, returning user from token');
-      res.json({
-        user: {
-          id: (req as any).user.id,
-          phone: (req as any).user.phone,
-          role: (req as any).user.role,
-          hospitalId: (req as any).user.hospitalId,
-        },
-      });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
+
+    const u = user as any;
+    res.json({
+      user: {
+        id: u.id,
+        phone: u.phone,
+        name: u.name,
+        role: u.role,
+        hospitalId: u.hospitalId,
+        age: u.age,
+        gender: u.gender,
+        weight: u.weight,
+        city: u.city,
+      },
+    });
   })
 );
 

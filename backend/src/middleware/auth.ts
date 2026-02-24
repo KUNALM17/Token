@@ -3,10 +3,10 @@ import jwt from 'jsonwebtoken';
 
 export interface AuthRequest extends Request {
   user?: {
-    id: string;
+    id: number;
     phone: string;
     role: string;
-    hospitalId?: string;
+    hospitalId?: number;
   };
 }
 

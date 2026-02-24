@@ -12,17 +12,11 @@ router.post(
   authenticate,
   authorize('SUPER_ADMIN'),
   validateCreateHospital,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: any, res: any) => {
     const { name, address, city, state, phone } = req.body;
 
     const hospital = await prisma.hospital.create({
-      data: {
-        name,
-        address,
-        city,
-        state,
-        phone,
-      },
+      data: { name, address, city, state, phone },
     });
 
     res.status(201).json({ success: true, hospital });
@@ -34,9 +28,12 @@ router.get(
   '/hospitals',
   authenticate,
   authorize('SUPER_ADMIN'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: any, res: any) => {
     const hospitals = await prisma.hospital.findMany({
       orderBy: { createdAt: 'desc' },
+      include: {
+        _count: { select: { doctors: true, appointments: true } },
+      },
     });
 
     res.json({ hospitals });
@@ -48,12 +45,11 @@ router.get(
   '/hospitals/:id',
   authenticate,
   authorize('SUPER_ADMIN'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: any, res: any) => {
     const hospital = await prisma.hospital.findUnique({
-      where: { id: req.params.id },
+      where: { id: parseInt(req.params.id) },
       include: {
-        doctors: true,
-        users: true,
+        doctors: { include: { user: true } },
       },
     });
 
@@ -61,7 +57,11 @@ router.get(
       return res.status(404).json({ error: 'Hospital not found' });
     }
 
-    res.json({ hospital });
+    const admins = await prisma.user.findMany({
+      where: { hospitalId: hospital.id, role: 'HOSPITAL_ADMIN' },
+    });
+
+    res.json({ hospital, admins });
   })
 );
 
@@ -70,11 +70,11 @@ router.put(
   '/hospitals/:id/status',
   authenticate,
   authorize('SUPER_ADMIN'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: any, res: any) => {
     const { isActive } = req.body;
 
     const hospital = await prisma.hospital.update({
-      where: { id: req.params.id },
+      where: { id: parseInt(req.params.id) },
       data: { isActive },
     });
 
@@ -87,46 +87,42 @@ router.post(
   '/hospital-admins',
   authenticate,
   authorize('SUPER_ADMIN'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: any, res: any) => {
     const { phone, name, hospitalId } = req.body;
 
     if (!phone || !hospitalId) {
-      return res.status(400).json({ error: 'Phone and hospitalId required' });
+      return res.status(400).json({ error: 'Phone and hospitalId are required' });
     }
 
-    // Check if hospital exists
     const hospital = await prisma.hospital.findUnique({
-      where: { id: hospitalId },
+      where: { id: parseInt(hospitalId) },
     });
 
     if (!hospital) {
       return res.status(404).json({ error: 'Hospital not found' });
     }
 
-    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { phone },
     });
 
     let user;
     if (existingUser) {
-      // Update existing user
       user = await prisma.user.update({
         where: { phone },
         data: {
           role: 'HOSPITAL_ADMIN',
-          hospitalId,
+          hospitalId: parseInt(hospitalId),
           name: name || existingUser.name,
         },
       });
     } else {
-      // Create new user
       user = await prisma.user.create({
         data: {
           phone,
           name: name || null,
           role: 'HOSPITAL_ADMIN',
-          hospitalId,
+          hospitalId: parseInt(hospitalId),
         },
       });
     }
@@ -141,6 +137,21 @@ router.post(
         hospitalId: user.hospitalId,
       },
     });
+  })
+);
+
+// Get all hospital admins
+router.get(
+  '/hospital-admins',
+  authenticate,
+  authorize('SUPER_ADMIN'),
+  asyncHandler(async (req: any, res: any) => {
+    const admins = await prisma.user.findMany({
+      where: { role: 'HOSPITAL_ADMIN' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({ admins });
   })
 );
 

@@ -1,10 +1,10 @@
 import jwt from 'jsonwebtoken';
 
 interface TokenPayload {
-  id: string;
+  id: number;
   phone: string;
   role: string;
-  hospitalId?: string;
+  hospitalId?: number;
 }
 
 export const generateToken = (payload: TokenPayload): string => {

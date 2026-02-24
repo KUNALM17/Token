@@ -1,148 +1,111 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-enum UserRole {
-  SUPER_ADMIN
-  HOSPITAL_ADMIN
-  DOCTOR
-  PATIENT
-}
-
-enum AppointmentStatus {
-  BOOKED
-  CALLED
-  COMPLETED
-  SKIPPED
-  CANCELLED
-}
-
-enum PaymentStatus {
-  PENDING
-  PAID
-  FAILED
-  REFUNDED
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id            String   @id @default(uuid())
-  name          String?
-  phone         String   @unique
-  email         String?
-  role          UserRole
-  hospitalId    String?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  hospital      Hospital?       @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
-  doctorProfile Doctor?
+  id            Int           @id @default(autoincrement())
+  phone         String        @unique @db.VarChar(15)
+  name          String?       @db.VarChar(255)
+  email         String?       @db.VarChar(255)
+  role          String        @default("PATIENT") @db.VarChar(50)
+  hospitalId    Int?
+  isActive      Boolean?      @default(true)
+  createdAt     DateTime?     @default(now()) @db.Timestamp(6)
+  updatedAt     DateTime?     @default(now()) @db.Timestamp(6)
+  age           Int?
+  city          String?       @db.VarChar(100)
+  gender        String?       @db.VarChar(20)
+  weight        Int?
   appointments  Appointment[]
+  doctorProfile Doctor?
   otps          OTP[]
 
-  @@index([hospitalId])
-  @@index([role])
+  @@index([phone], map: "idx_user_phone")
+  @@index([role], map: "idx_user_role")
 }
 
 model Hospital {
-  id        String   @id @default(uuid())
-  name      String
-  address   String
-  city      String
-  state     String
-  phone     String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  users        User[]
-  doctors      Doctor[]
+  id           Int           @id @default(autoincrement())
+  name         String        @db.VarChar(255)
+  address      String?       @db.VarChar(500)
+  city         String?       @db.VarChar(100)
+  state        String?       @db.VarChar(100)
+  phone        String?       @db.VarChar(15)
+  isActive     Boolean?      @default(true)
+  createdAt    DateTime?     @default(now()) @db.Timestamp(6)
+  updatedAt    DateTime?     @default(now()) @db.Timestamp(6)
   appointments Appointment[]
-
-  @@index([isActive])
+  doctors      Doctor[]
 }
 
 model Doctor {
-  id               String   @id @default(uuid())
-  userId           String   @unique
-  hospitalId       String
-  specialization   String
-  consultationFee  Float
-  dailyTokenLimit  Int      @default(50)
-  isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id              Int           @id @default(autoincrement())
+  userId          Int?          @unique
+  hospitalId      Int?
+  specialization  String?       @db.VarChar(255)
+  consultationFee Int?
+  dailyTokenLimit Int?          @default(50)
+  isActive        Boolean?      @default(true)
+  createdAt       DateTime?     @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime?     @default(now()) @db.Timestamp(6)
+  appointments    Appointment[]
+  hospital        Hospital?     @relation(fields: [hospitalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user            User?         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  hospital         Hospital       @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
-  appointments     Appointment[]
-
-  @@index([hospitalId])
-  @@index([userId])
-  @@index([isActive])
+  @@index([hospitalId], map: "idx_doctor_hospital")
 }
 
 model Appointment {
-  id              String             @id @default(uuid())
-  patientId       String
-  doctorId        String
-  hospitalId      String
-  appointmentDate String             // YYYY-MM-DD format
-  tokenNumber     Int
-  status          AppointmentStatus  @default(BOOKED)
-  paymentStatus   PaymentStatus      @default(PENDING)
-  paymentId       String?
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-
-  patient         User              @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  doctor          Doctor            @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  hospital        Hospital          @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  id              Int       @id @default(autoincrement())
+  patientId       Int?
+  doctorId        Int?
+  hospitalId      Int?
+  appointmentDate String?   @db.VarChar(10)
+  tokenNumber     Int?
+  status          String?   @default("BOOKED") @db.VarChar(50)
+  paymentStatus   String?   @default("PENDING") @db.VarChar(50)
+  paymentId       Int?
+  createdAt       DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime? @default(now()) @db.Timestamp(6)
+  doctor          Doctor?   @relation(fields: [doctorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  hospital        Hospital? @relation(fields: [hospitalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  patient         User?     @relation(fields: [patientId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   payment         Payment?
 
   @@unique([doctorId, appointmentDate, tokenNumber])
-  @@index([patientId])
-  @@index([doctorId])
-  @@index([hospitalId])
-  @@index([appointmentDate])
-  @@index([status])
+  @@index([appointmentDate], map: "idx_appointment_date")
+  @@index([doctorId], map: "idx_appointment_doctor")
+  @@index([patientId], map: "idx_appointment_patient")
 }
 
 model Payment {
-  id                  String        @id @default(uuid())
-  appointmentId       String        @unique
-  amount              Float
-  provider            String        // "razorpay"
-  providerPaymentId   String?       // Razorpay order ID or payment ID
-  status              PaymentStatus @default(PENDING)
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
-
-  appointment         Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-
-  @@index([status])
-  @@index([appointmentId])
+  id                Int          @id @default(autoincrement())
+  appointmentId     Int?         @unique
+  amount            Int?
+  provider          String?      @db.VarChar(50)
+  providerPaymentId String?      @db.VarChar(255)
+  status            String?      @db.VarChar(50)
+  createdAt         DateTime?    @default(now()) @db.Timestamp(6)
+  updatedAt         DateTime?    @default(now()) @db.Timestamp(6)
+  appointment       Appointment? @relation(fields: [appointmentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model OTP {
-  id        String   @id @default(uuid())
-  userId    String?
-  phone     String
-  code      String
-  expiresAt DateTime
-  isUsed    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id        Int       @id @default(autoincrement())
+  userId    Int?
+  phone     String?   @db.VarChar(15)
+  code      String?   @db.VarChar(6)
+  expiresAt DateTime? @db.Timestamp(6)
+  isUsed    Boolean?  @default(false)
+  createdAt DateTime? @default(now()) @db.Timestamp(6)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([phone])
-  @@index([isUsed])
+  @@index([expiresAt], map: "idx_otp_expires")
+  @@index([phone], map: "idx_otp_phone")
 }

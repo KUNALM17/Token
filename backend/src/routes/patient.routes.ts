@@ -2,14 +2,13 @@ import { Router } from 'express';
 import { prisma } from '../index.js';
 import { authenticate } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
-import { validateBookAppointment, validateDateQuery } from '../middleware/validation.js';
 
 const router = Router();
 
-// Get all hospitals
+// Get all hospitals (public)
 router.get(
   '/hospitals',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: any, res: any) => {
     const hospitals = await prisma.hospital.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
@@ -19,35 +18,41 @@ router.get(
   })
 );
 
-// Get doctors for hospital
+// Get doctors for hospital (public)
 router.get(
   '/hospitals/:id/doctors',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: any, res: any) => {
     const doctors = await prisma.doctor.findMany({
       where: {
-        hospitalId: req.params.id,
+        hospitalId: parseInt(req.params.id),
         isActive: true,
       },
-      include: {
-        user: true,
-      },
-      orderBy: { user: { name: 'asc' } },
+      include: { user: true },
     });
 
-    res.json({ doctors });
+    // Map to a cleaner response
+    const mapped = doctors.map((d: any) => ({
+      id: d.id,
+      name: d.user?.name || 'Doctor',
+      specialization: d.specialization,
+      consultationFee: d.consultationFee,
+      dailyTokenLimit: d.dailyTokenLimit,
+      isActive: d.isActive,
+    }));
+
+    res.json({ doctors: mapped });
   })
 );
 
-// Get doctor availability
+// Get doctor availability (public)
 router.get(
   '/doctors/:id/availability',
-  validateDateQuery,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: any, res: any) => {
     const { date } = req.query;
-    const targetDate = date || new Date().toISOString().split('T')[0];
+    const targetDate = (date as string) || new Date().toISOString().split('T')[0];
 
     const doctor = await prisma.doctor.findUnique({
-      where: { id: req.params.id },
+      where: { id: parseInt(req.params.id) },
       include: { user: true },
     });
 
@@ -55,23 +60,23 @@ router.get(
       return res.status(404).json({ error: 'Doctor not found' });
     }
 
-    // Count appointments for this doctor on this date
     const appointmentCount = await prisma.appointment.count({
       where: {
         doctorId: doctor.id,
-        appointmentDate: targetDate as string,
+        appointmentDate: targetDate,
       },
     });
 
-    const availableSlots = Math.max(0, doctor.dailyTokenLimit - appointmentCount);
+    const limit = doctor.dailyTokenLimit ?? 50;
+    const availableSlots = Math.max(0, limit - appointmentCount);
 
     res.json({
       doctor: {
         id: doctor.id,
-        name: doctor.user.name,
+        name: doctor.user?.name || 'Doctor',
         specialization: doctor.specialization,
         consultationFee: doctor.consultationFee,
-        dailyTokenLimit: doctor.dailyTokenLimit,
+        dailyTokenLimit: limit,
       },
       date: targetDate,
       appointmentCount,
@@ -81,60 +86,63 @@ router.get(
   })
 );
 
-// Book appointment
+// Book appointment (requires auth)
 router.post(
   '/appointments/book',
   authenticate,
-  validateBookAppointment,
-  asyncHandler(async (req, res) => {
-    const patientId = (req as any).user.id;
+  asyncHandler(async (req: any, res: any) => {
+    const patientId = req.user.id;
     const { doctorId, hospitalId, appointmentDate } = req.body;
+
+    if (!doctorId || !hospitalId || !appointmentDate) {
+      return res.status(400).json({ error: 'doctorId, hospitalId, and appointmentDate are required' });
+    }
 
     // Verify doctor exists and belongs to hospital
     const doctor = await prisma.doctor.findUnique({
-      where: { id: doctorId },
+      where: { id: parseInt(doctorId) },
     });
 
-    if (!doctor || doctor.hospitalId !== hospitalId) {
-      return res.status(404).json({ error: 'Doctor not found' });
+    if (!doctor || doctor.hospitalId !== parseInt(hospitalId)) {
+      return res.status(404).json({ error: 'Doctor not found in this hospital' });
     }
 
     if (!doctor.isActive) {
       return res.status(400).json({ error: 'Doctor is not available' });
     }
 
+    const limit = doctor.dailyTokenLimit ?? 50;
+
     // Use transaction for concurrency safety
     try {
-      const appointment = await prisma.$transaction(async (tx) => {
-        // Count existing appointments for this doctor on this date
+      const appointment = await prisma.$transaction(async (tx: any) => {
         const existingCount = await tx.appointment.count({
           where: {
-            doctorId,
+            doctorId: parseInt(doctorId),
             appointmentDate,
           },
         });
 
         const nextToken = existingCount + 1;
 
-        // Check if token exceeds limit
-        if (nextToken > doctor.dailyTokenLimit) {
-          throw new Error('No slots available for this doctor today');
+        if (nextToken > limit) {
+          throw new Error(`No slots available. All ${limit} tokens are booked for this doctor today.`);
         }
 
-        // Create appointment
         const apt = await tx.appointment.create({
           data: {
             patientId,
-            doctorId,
-            hospitalId,
+            doctorId: parseInt(doctorId),
+            hospitalId: parseInt(hospitalId),
             appointmentDate,
             tokenNumber: nextToken,
-            status: 'BOOKED',
+            status: 'PENDING',
             paymentStatus: 'PENDING',
           },
           include: {
             patient: true,
             doctor: { include: { user: true } },
+            hospital: true,
           },
         });
 
@@ -143,8 +151,12 @@ router.post(
 
       res.status(201).json({
         success: true,
-        appointment,
-        message: 'Appointment booked. Please complete payment.',
+        appointment: {
+          ...appointment,
+          doctorName: (appointment as any).doctor?.user?.name || 'Doctor',
+          hospitalName: (appointment as any).hospital?.name || '',
+        },
+        message: `Token #${(appointment as any).tokenNumber} booked successfully!`,
       });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -156,8 +168,8 @@ router.post(
 router.get(
   '/appointments/my',
   authenticate,
-  asyncHandler(async (req, res) => {
-    const patientId = (req as any).user.id;
+  asyncHandler(async (req: any, res: any) => {
+    const patientId = req.user.id;
 
     const appointments = await prisma.appointment.findMany({
       where: { patientId },
@@ -176,9 +188,9 @@ router.get(
 router.get(
   '/appointments/:id/status',
   authenticate,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: any, res: any) => {
     const appointment = await prisma.appointment.findUnique({
-      where: { id: req.params.id },
+      where: { id: parseInt(req.params.id) },
       include: {
         patient: true,
         doctor: { include: { user: true } },
@@ -190,8 +202,7 @@ router.get(
       return res.status(404).json({ error: 'Appointment not found' });
     }
 
-    // Check authorization
-    if (appointment.patientId !== (req as any).user.id) {
+    if (appointment.patientId !== req.user.id) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 

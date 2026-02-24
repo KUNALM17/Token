@@ -14,7 +14,13 @@ import paymentRoutes from './routes/payment.routes.js';
 // Middleware
 import { errorHandler } from './middleware/errorHandler.js';
 
-dotenv.config();
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+dotenv.config({ path: join(__dirname, '..', '.env') });
 
 const app: Express = express();
 export const prisma = new PrismaClient({ errorFormat: 'pretty' });

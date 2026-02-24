@@ -1,15 +1,26 @@
 import { PrismaClient } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Seeding database...');
 
+  // Clean existing data (in reverse order of dependencies)
+  try {
+    await prisma.payment.deleteMany();
+    await prisma.appointment.deleteMany();
+    await prisma.oTP.deleteMany();
+    await prisma.doctor.deleteMany();
+    await prisma.user.deleteMany();
+    await prisma.hospital.deleteMany();
+    console.log('✓ Cleaned existing data');
+  } catch (e) {
+    console.log('⚠️ Cleanup skipped (tables may be empty)');
+  }
+
   // Create hospital
   const hospital = await prisma.hospital.create({
     data: {
-      id: uuidv4(),
       name: 'City Medical Center',
       address: '123 Healthcare Lane',
       city: 'Mumbai',
@@ -22,7 +33,6 @@ async function main() {
   // Create super admin
   const superAdmin = await prisma.user.create({
     data: {
-      id: uuidv4(),
       phone: '9000000001',
       name: 'Super Admin',
       role: 'SUPER_ADMIN',
@@ -33,7 +43,6 @@ async function main() {
   // Create hospital admin
   const admin = await prisma.user.create({
     data: {
-      id: uuidv4(),
       phone: '9000000002',
       name: 'Hospital Admin',
       role: 'HOSPITAL_ADMIN',
@@ -45,7 +54,6 @@ async function main() {
   // Create doctors
   const doctor1User = await prisma.user.create({
     data: {
-      id: uuidv4(),
       phone: '9000000003',
       name: 'Dr. Rajesh Kumar',
       role: 'DOCTOR',
@@ -55,7 +63,6 @@ async function main() {
 
   const doctor1 = await prisma.doctor.create({
     data: {
-      id: uuidv4(),
       userId: doctor1User.id,
       hospitalId: hospital.id,
       specialization: 'Cardiology',
@@ -67,7 +74,6 @@ async function main() {
 
   const doctor2User = await prisma.user.create({
     data: {
-      id: uuidv4(),
       phone: '9000000004',
       name: 'Dr. Priya Singh',
       role: 'DOCTOR',
@@ -77,7 +83,6 @@ async function main() {
 
   const doctor2 = await prisma.doctor.create({
     data: {
-      id: uuidv4(),
       userId: doctor2User.id,
       hospitalId: hospital.id,
       specialization: 'Pediatrics',
@@ -89,7 +94,6 @@ async function main() {
 
   const doctor3User = await prisma.user.create({
     data: {
-      id: uuidv4(),
       phone: '9000000005',
       name: 'Dr. Amit Patel',
       role: 'DOCTOR',
@@ -99,7 +103,6 @@ async function main() {
 
   const doctor3 = await prisma.doctor.create({
     data: {
-      id: uuidv4(),
       userId: doctor3User.id,
       hospitalId: hospital.id,
       specialization: 'Dermatology',
@@ -109,23 +112,21 @@ async function main() {
   });
   console.log('✓ Doctor 3 created:', doctor3User.name);
 
-  // Create sample patients
+  // Create sample patients with appointments
   const today = new Date().toISOString().split('T')[0];
 
   for (let i = 0; i < 5; i++) {
     const patient = await prisma.user.create({
       data: {
-        id: uuidv4(),
         phone: `900000010${i}`,
         name: `Patient ${i + 1}`,
         role: 'PATIENT',
       },
     });
 
-    // Create appointments
+    // Create appointment
     const appointment = await prisma.appointment.create({
       data: {
-        id: uuidv4(),
         patientId: patient.id,
         doctorId: doctor1.id,
         hospitalId: hospital.id,
@@ -139,7 +140,6 @@ async function main() {
     // Create payment record
     await prisma.payment.create({
       data: {
-        id: uuidv4(),
         appointmentId: appointment.id,
         amount: doctor1.consultationFee,
         provider: 'razorpay',
@@ -147,16 +147,16 @@ async function main() {
       },
     });
   }
-  console.log('✓ Sample appointments created');
+  console.log('✓ 5 patients and appointments created');
 
   console.log('\n✅ Database seeding completed!');
   console.log('\n📱 Test Credentials:');
-  console.log('Super Admin: +91 9000000001');
-  console.log('Hospital Admin: +91 9000000002');
-  console.log('Doctor 1: +91 9000000003 (Cardiology, 70 tokens/day)');
-  console.log('Doctor 2: +91 9000000004 (Pediatrics, 50 tokens/day)');
-  console.log('Doctor 3: +91 9000000005 (Dermatology, 60 tokens/day)');
-  console.log('Patient: +91 9000000100 onwards (OTP: 000000 for testing)');
+  console.log('Super Admin:    9000000001');
+  console.log('Hospital Admin: 9000000002');
+  console.log('Doctor 1:       9000000003 (Cardiology)');
+  console.log('Doctor 2:       9000000004 (Pediatrics)');
+  console.log('Doctor 3:       9000000005 (Dermatology)');
+  console.log('Patients:       9000000100 - 9000000104');
 }
 
 main()
