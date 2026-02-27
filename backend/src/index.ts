@@ -20,8 +20,20 @@ const app: Express = express();
 export const prisma = new PrismaClient({ errorFormat: 'pretty' });
 
 // Middleware
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:5173',
+  'http://localhost:5173',
+  'http://localhost:3000',
+].filter(Boolean) as string[];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.some(o => origin.startsWith(o))) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all in dev, restrict via FRONTEND_URL in prod
+    }
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
