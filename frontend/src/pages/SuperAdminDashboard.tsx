@@ -6,9 +6,10 @@ import { useTheme } from '../theme';
 
 export default function SuperAdminDashboard({ user, onLogout }: { user: User; onLogout: () => void }) {
   const { theme, toggle } = useTheme();
+  const isDark = theme === 'dark';
   const ThemeToggle = () => (
-    <button onClick={toggle} className="p-2 hover:bg-gray-100 rounded-xl transition-colors" title="Toggle theme">
-      {theme === 'dark' ? <Sun className="w-4 h-4 text-yellow-400" /> : <Moon className="w-4 h-4 text-gray-500" />}
+    <button onClick={toggle} className={`p-2 rounded-xl transition-colors ${isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-gray-100'}`} title="Toggle theme">
+      {isDark ? <Sun className="w-4 h-4 text-yellow-400" /> : <Moon className="w-4 h-4 text-gray-500" />}
     </button>
   );
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
