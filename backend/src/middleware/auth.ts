@@ -13,11 +13,7 @@ export interface AuthRequest extends Request {
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-
+    if (!token) return res.status(401).json({ error: 'No token provided' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
     req.user = decoded as any;
     next();
@@ -28,32 +24,8 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
 
 export const authorize = (...roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
-
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Insufficient permissions' });
-    }
-
+    if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
+    if (!roles.includes(req.user.role)) return res.status(403).json({ error: 'Insufficient permissions' });
     next();
   };
-};
-
-export const authorizeSameHospital = (req: AuthRequest, res: Response, next: NextFunction) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-
-  const { hospitalId } = req.query;
-  
-  if (req.user.role === 'SUPER_ADMIN') {
-    return next();
-  }
-
-  if (req.user.hospitalId !== hospitalId) {
-    return res.status(403).json({ error: 'Access denied to this hospital' });
-  }
-
-  next();
 };

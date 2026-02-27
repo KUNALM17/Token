@@ -1,7 +1,7 @@
 export interface User {
   id: number;
   phone: string;
-  name?: string;
+  name: string;
   role: 'SUPER_ADMIN' | 'HOSPITAL_ADMIN' | 'DOCTOR' | 'PATIENT';
   hospitalId?: number;
   age?: number;
@@ -14,30 +14,40 @@ export interface Hospital {
   id: number;
   name: string;
   address: string;
-  city: string;
-  state: string;
   phone: string;
+  maxBookingDaysAhead?: number;
   isActive: boolean;
-  _count?: {
-    doctors: number;
-    appointments: number;
-  };
+  createdAt: string;
 }
 
 export interface Doctor {
   id: number;
   userId: number;
   hospitalId: number;
-  name: string;
   specialization: string;
   consultationFee: number;
-  dailyTokenLimit: number;
+  avgConsultTime?: number;
   isActive: boolean;
-  user?: {
-    id: number;
-    name: string;
-    phone: string;
-  };
+  user: User;
+  hospital?: Hospital;
+  shifts?: DoctorShift[];
+}
+
+export interface DoctorShift {
+  id: number;
+  doctorId: number;
+  shiftName: string;
+  startTime: string;
+  endTime: string;
+  tokenLimit: number;
+  workingDays?: string;
+  isActive: boolean;
+  appointmentCount?: number;
+  availableSlots?: number;
+  isAvailable?: boolean;
+  onLeave?: boolean;
+  notWorkingDay?: boolean;
+  shiftEnded?: boolean;
 }
 
 export interface Appointment {
@@ -45,42 +55,44 @@ export interface Appointment {
   patientId: number;
   doctorId: number;
   hospitalId: number;
-  appointmentDate: string;
+  shiftId?: number;
   tokenNumber: number;
-  status: 'PENDING' | 'BOOKED' | 'CALLED' | 'COMPLETED' | 'SKIPPED' | 'CANCELLED';
-  paymentStatus: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
+  appointmentDate: string;
+  status: string;
+  paymentStatus: string;
   createdAt: string;
-  patient?: {
-    id: number;
-    name: string;
-    phone: string;
-    age?: number;
-    gender?: string;
-    weight?: number;
-    city?: string;
-  };
-  doctor?: {
-    id: number;
-    specialization: string;
-    consultationFee: number;
-    user?: {
-      id: number;
-      name: string;
-      phone: string;
-    };
-  };
-  hospital?: {
-    id: number;
-    name: string;
-    city: string;
-  };
+  patient?: User;
+  doctor?: Doctor;
+  hospital?: Hospital;
+  shift?: DoctorShift;
+  canReschedule?: boolean;
+  canRescheduleUnviewed?: boolean;
+  doctorOnLeave?: boolean;
 }
 
-export interface Payment {
-  id: number;
-  appointmentId: number;
+export interface LiveStatus {
+  currentToken: number;
+  yourToken: number;
+  tokensAhead: number;
+  status: string;
+  estimatedWait: string;
+  avgConsultTime?: number;
+}
+
+export interface Invoice {
+  invoiceId: string;
+  date: string;
+  patientName: string;
+  patientPhone: string;
+  doctorName: string;
+  specialization: string;
+  hospitalName: string;
+  hospitalAddress: string;
+  shiftName: string;
+  shiftTime: string;
+  appointmentDate: string;
+  tokenNumber: number;
   amount: number;
-  provider: string;
-  providerPaymentId: string;
+  paymentMethod: string;
   status: string;
 }

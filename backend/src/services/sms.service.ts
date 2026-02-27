@@ -2,30 +2,39 @@ import axios from 'axios';
 
 const FAST2SMS_API_URL = 'https://www.fast2sms.com/dev/bulkV2';
 
-export const sendOtpViaSms = async (phone: string, otp: string) => {
+export const sendOtpViaSms = async (phone: string, otp: string): Promise<{ success: boolean; requestId?: string }> => {
+  const apiKey = process.env.FAST2SMS_API_KEY;
+  if (!apiKey || apiKey === 'your-api-key') {
+    console.log('FAST2SMS_API_KEY not configured, skipping SMS');
+    return { success: false };
+  }
+
   try {
-    const response = await axios.post(
-      FAST2SMS_API_URL,
-      {
+    const response = await axios.get(FAST2SMS_API_URL, {
+      params: {
+        authorization: apiKey,
         route: 'otp',
         variables_values: otp,
+        flash: '0',
         numbers: phone,
       },
-      {
-        headers: {
-          authorization: process.env.FAST2SMS_API_KEY,
-        },
-      }
-    );
+      headers: {
+        'cache-control': 'no-cache',
+      },
+      timeout: 10000, // 10 second timeout
+    });
 
-    if (response.data.return === true) {
-      return { success: true };
+    console.log('Fast2SMS response:', JSON.stringify(response.data));
+
+    if (response.data && response.data.return === true) {
+      return { success: true, requestId: response.data.request_id };
     } else {
-      throw new Error('Failed to send OTP');
+      console.error('Fast2SMS failed:', response.data?.message || 'Unknown error');
+      return { success: false };
     }
-  } catch (error) {
-    console.error('SMS Error:', error);
-    throw error;
+  } catch (error: any) {
+    console.error('SMS Error:', error?.response?.data || error?.message || 'Unknown error');
+    return { success: false };
   }
 };
 

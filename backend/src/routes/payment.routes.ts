@@ -1,251 +1,140 @@
 import { Router } from 'express';
-import crypto from 'crypto';
-import { prisma } from '../index.js';
-import { authenticate } from '../middleware/auth.js';
-import { asyncHandler } from '../middleware/errorHandler.js';
-import { createOrder, verifyPayment } from '../services/payment.service.js';
+import { prisma } from '../index';
+import { authenticate } from '../middleware/auth';
+import { asyncHandler } from '../middleware/errorHandler';
 
 const router = Router();
 
-// Create Razorpay order
-router.post(
-  '/create-order',
-  authenticate,
-  asyncHandler(async (req: any, res: any) => {
-    const { appointmentId } = req.body;
-    const patientId = req.user.id;
+// Fake payment — assigns token number and moves appointment to BOOKED
+router.post('/demo-pay/:appointmentId', authenticate, asyncHandler(async (req: any, res: any) => {
+  const appointmentId = parseInt(req.params.appointmentId);
 
-    if (!appointmentId) {
-      return res.status(400).json({ error: 'Appointment ID required' });
+  const existing = await prisma.appointment.findUnique({
+    where: { id: appointmentId },
+    include: { shift: true, doctor: true },
+  });
+  if (!existing) return res.status(404).json({ error: 'Appointment not found' });
+  if (existing.paymentStatus === 'PAID') return res.status(400).json({ error: 'Already paid' });
+  if (existing.status === 'CANCELLED') return res.status(400).json({ error: 'Appointment is cancelled' });
+
+  // Use doctor's actual consultation fee (fallback to 500 if not set)
+  const consultationFee = (existing as any).doctor?.consultationFee || 500;
+
+  // Transaction: safely assign next token number and mark as paid
+  const appointment = await prisma.$transaction(async (tx: any) => {
+    // Count existing PAID appointments for this doctor+date+shift to get next token
+    const whereCount: any = {
+      doctorId: existing.doctorId,
+      appointmentDate: existing.appointmentDate,
+      paymentStatus: 'PAID',
+    };
+    if (existing.shiftId) whereCount.shiftId = existing.shiftId;
+
+    const paidCount = await tx.appointment.count({ where: whereCount });
+    const nextToken = paidCount + 1;
+
+    // Check token limit if shift exists
+    if (existing.shift && nextToken > existing.shift.tokenLimit) {
+      throw new Error('Token limit reached for this shift. Cannot process payment.');
     }
 
-    const appointment = await prisma.appointment.findUnique({
-      where: { id: parseInt(appointmentId) },
-      include: { doctor: true },
-    });
-
-    if (!appointment) {
-      return res.status(404).json({ error: 'Appointment not found' });
-    }
-
-    if (appointment.patientId !== patientId) {
-      return res.status(403).json({ error: 'Not authorized' });
-    }
-
-    if (appointment.paymentStatus === 'PAID') {
-      return res.status(400).json({ error: 'Already paid' });
-    }
-
-    const fee = appointment.doctor?.consultationFee ?? 0;
-
-    try {
-      const order = await createOrder({
-        amount: fee,
-        receipt: `apt_${appointmentId}`,
-      });
-
-      res.json({
-        success: true,
-        order: {
-          id: order.id,
-          amount: order.amount,
-          currency: order.currency,
-          appointmentId,
-        },
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: 'Failed to create payment order' });
-    }
-  })
-);
-
-// Verify payment (client-side verification)
-router.post(
-  '/verify',
-  authenticate,
-  asyncHandler(async (req: any, res: any) => {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, appointmentId } = req.body;
-
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !appointmentId) {
-      return res.status(400).json({ error: 'Missing payment verification fields' });
-    }
-
-    const isValid = verifyPayment(razorpay_order_id, razorpay_payment_id, razorpay_signature);
-
-    if (!isValid) {
-      return res.status(400).json({ error: 'Invalid payment signature' });
-    }
-
-    const appointment = await prisma.appointment.findUnique({
-      where: { id: parseInt(appointmentId) },
-      include: { doctor: true },
-    });
-
-    if (!appointment) {
-      return res.status(404).json({ error: 'Appointment not found' });
-    }
-
-    // Create/update payment record
-    await prisma.payment.upsert({
-      where: { appointmentId: appointment.id },
-      update: {
-        status: 'PAID',
-        providerPaymentId: razorpay_payment_id,
-      },
-      create: {
-        appointmentId: appointment.id,
-        amount: appointment.doctor?.consultationFee ?? 0,
-        provider: 'razorpay',
-        providerPaymentId: razorpay_payment_id,
-        status: 'PAID',
+    // Create fake payment record
+    await tx.payment.create({
+      data: {
+        appointmentId,
+        amount: consultationFee,
+        provider: 'DEMO',
+        providerPaymentId: `DEMO_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        status: 'SUCCESS',
       },
     });
 
-    // Update appointment payment status AND booking status
-    await prisma.appointment.update({
-      where: { id: appointment.id },
-      data: { paymentStatus: 'PAID', status: 'BOOKED' },
-    });
-
-    res.json({ success: true, message: 'Payment verified successfully' });
-  })
-);
-
-// Demo Pay — FOR TESTING ONLY — instantly marks payment as done
-router.post(
-  '/demo-pay',
-  authenticate,
-  asyncHandler(async (req: any, res: any) => {
-    const { appointmentId } = req.body;
-    const patientId = req.user.id;
-
-    if (!appointmentId) {
-      return res.status(400).json({ error: 'Appointment ID required' });
-    }
-
-    const appointment = await prisma.appointment.findUnique({
-      where: { id: parseInt(appointmentId) },
-      include: { doctor: true },
-    });
-
-    if (!appointment) {
-      return res.status(404).json({ error: 'Appointment not found' });
-    }
-
-    if (appointment.patientId !== patientId) {
-      return res.status(403).json({ error: 'Not authorized' });
-    }
-
-    if (appointment.paymentStatus === 'PAID') {
-      return res.status(400).json({ error: 'Already paid' });
-    }
-
-    // Create payment record
-    await prisma.payment.upsert({
-      where: { appointmentId: appointment.id },
-      update: {
-        status: 'PAID',
-        providerPaymentId: `demo_${Date.now()}`,
+    // Update appointment: assign token, mark as BOOKED and PAID
+    return tx.appointment.update({
+      where: { id: appointmentId },
+      data: {
+        tokenNumber: nextToken,
+        status: 'BOOKED',
+        paymentStatus: 'PAID',
       },
-      create: {
-        appointmentId: appointment.id,
-        amount: appointment.doctor?.consultationFee ?? 0,
-        provider: 'demo',
-        providerPaymentId: `demo_${Date.now()}`,
-        status: 'PAID',
+      include: {
+        doctor: { include: { user: true } },
+        hospital: true,
+        shift: true,
+        patient: true,
       },
     });
+  });
 
-    // Update appointment → PAID + BOOKED
-    const updated = await prisma.appointment.update({
-      where: { id: appointment.id },
-      data: { paymentStatus: 'PAID', status: 'BOOKED' },
-      include: { doctor: { include: { user: true } }, hospital: true },
-    });
+  res.json({
+    success: true,
+    message: `Payment successful! Your token number is #${appointment.tokenNumber}`,
+    appointment,
+    invoice: {
+      invoiceId: `INV-${appointment.id}-${Date.now().toString(36).toUpperCase()}`,
+      date: new Date().toISOString(),
+      patientName: (appointment as any).patient?.name || 'Patient',
+      patientPhone: (appointment as any).patient?.phone || '',
+      doctorName: (appointment as any).doctor?.user?.name || 'Doctor',
+      specialization: (appointment as any).doctor?.specialization || '',
+      hospitalName: (appointment as any).hospital?.name || 'Hospital',
+      hospitalAddress: (appointment as any).hospital?.address || '',
+      shiftName: (appointment as any).shift?.shiftName || 'General',
+      shiftTime: (appointment as any).shift ? `${(appointment as any).shift.startTime} - ${(appointment as any).shift.endTime}` : '',
+      appointmentDate: appointment.appointmentDate,
+      tokenNumber: appointment.tokenNumber,
+      amount: consultationFee,
+      paymentMethod: 'Demo Payment',
+      status: 'PAID',
+    },
+  });
+}));
 
-    res.json({
-      success: true,
-      message: `Payment successful! Token #${updated.tokenNumber} is confirmed.`,
-      appointment: updated,
-    });
-  })
-);
+router.get('/status/:appointmentId', authenticate, asyncHandler(async (req: any, res: any) => {
+  const appointment = await prisma.appointment.findUnique({
+    where: { id: parseInt(req.params.appointmentId) },
+    include: { payment: true },
+  });
+  if (!appointment) return res.status(404).json({ error: 'Not found' });
+  res.json({ appointment });
+}));
 
-// Webhook (server-side, no auth)
-router.post(
-  '/webhook',
-  asyncHandler(async (req: any, res: any) => {
-    const secret = process.env.WEBHOOK_SECRET || '';
-    const signature = req.headers['x-razorpay-signature'];
+// ── GET INVOICE (reconstruct from appointment data) ──
+router.get('/invoice/:appointmentId', authenticate, asyncHandler(async (req: any, res: any) => {
+  const appointment = await prisma.appointment.findUnique({
+    where: { id: parseInt(req.params.appointmentId) },
+    include: {
+      doctor: { include: { user: true } },
+      hospital: true,
+      shift: true,
+      patient: true,
+      payment: true,
+    },
+  });
+  if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
+  if (appointment.patientId !== req.user.id) return res.status(403).json({ error: 'Not your appointment' });
+  if (appointment.paymentStatus !== 'PAID') return res.status(400).json({ error: 'Appointment is not paid yet' });
 
-    // Verify webhook signature
-    if (signature && secret) {
-      const expectedSignature = crypto
-        .createHmac('sha256', secret)
-        .update(JSON.stringify(req.body))
-        .digest('hex');
+  const payment = (appointment as any).payment;
+  const invoice = {
+    invoiceId: `INV-${appointment.id}-${(payment?.createdAt ? new Date(payment.createdAt).getTime() : Date.now()).toString(36).toUpperCase()}`,
+    date: payment?.createdAt || appointment.createdAt,
+    patientName: (appointment as any).patient?.name || 'Patient',
+    patientPhone: (appointment as any).patient?.phone || '',
+    doctorName: (appointment as any).doctor?.user?.name || 'Doctor',
+    specialization: (appointment as any).doctor?.specialization || '',
+    hospitalName: (appointment as any).hospital?.name || 'Hospital',
+    hospitalAddress: (appointment as any).hospital?.address || '',
+    shiftName: (appointment as any).shift?.shiftName || 'General',
+    shiftTime: (appointment as any).shift ? `${(appointment as any).shift.startTime} - ${(appointment as any).shift.endTime}` : '',
+    appointmentDate: appointment.appointmentDate,
+    tokenNumber: appointment.tokenNumber,
+    amount: payment?.amount || (appointment as any).doctor?.consultationFee || 500,
+    paymentMethod: payment?.provider === 'DEMO' ? 'Demo Payment' : (payment?.provider || 'Online Payment'),
+    status: 'PAID',
+  };
 
-      if (expectedSignature !== signature) {
-        return res.status(400).json({ error: 'Invalid webhook signature' });
-      }
-    }
-
-    const { payload } = req.body;
-    if (payload?.payment?.entity) {
-      const payment = payload.payment.entity;
-      const orderId = payment.order_id;
-      const notes = payment.notes || {};
-      const appointmentId = notes.appointmentId;
-
-      if (appointmentId) {
-        const appointment = await prisma.appointment.findUnique({
-          where: { id: parseInt(appointmentId) },
-          include: { doctor: true },
-        });
-
-        if (appointment) {
-          await prisma.payment.upsert({
-            where: { appointmentId: appointment.id },
-            update: {
-              status: 'PAID',
-              providerPaymentId: payment.id,
-            },
-            create: {
-              appointmentId: appointment.id,
-              amount: appointment.doctor?.consultationFee ?? 0,
-              provider: 'razorpay',
-              providerPaymentId: payment.id,
-              status: 'PAID',
-            },
-          });
-
-          await prisma.appointment.update({
-            where: { id: appointment.id },
-            data: { paymentStatus: 'PAID', status: 'BOOKED' },
-          });
-        }
-      }
-    }
-
-    res.json({ status: 'ok' });
-  })
-);
-
-// Get payment details
-router.get(
-  '/appointment/:appointmentId',
-  authenticate,
-  asyncHandler(async (req: any, res: any) => {
-    const payment = await prisma.payment.findUnique({
-      where: { appointmentId: parseInt(req.params.appointmentId) },
-    });
-
-    if (!payment) {
-      return res.status(404).json({ error: 'Payment not found' });
-    }
-
-    res.json({ payment });
-  })
-);
+  res.json({ success: true, invoice });
+}));
 
 export default router;

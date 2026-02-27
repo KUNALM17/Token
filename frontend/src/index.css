@@ -1,37 +1,217 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* ── Design Tokens (CSS custom properties) ── */
+:root {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-card: rgba(255,255,255,0.9);
+  --bg-card-hover: rgba(255,255,255,1);
+  --bg-input: #f8fafc;
+  --bg-elevated: #ffffff;
+
+  --border-primary: #e2e8f0;
+  --border-secondary: #f1f5f9;
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #94a3b8;
+  --text-inverse: #ffffff;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.07), 0 4px 6px -4px rgba(0,0,0,0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.07), 0 8px 10px -6px rgba(0,0,0,0.04);
+
+  color-scheme: light;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+html.dark {
+  --bg-primary: #0c1222;
+  --bg-secondary: #111827;
+  --bg-tertiary: #1e293b;
+  --bg-card: rgba(30,41,59,0.7);
+  --bg-card-hover: rgba(30,41,59,0.9);
+  --bg-input: #1e293b;
+  --bg-elevated: #1e293b;
+
+  --border-primary: #334155;
+  --border-secondary: #1e293b;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-inverse: #0f172a;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -2px rgba(0,0,0,0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.4), 0 4px 6px -4px rgba(0,0,0,0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.5), 0 8px 10px -6px rgba(0,0,0,0.4);
+
+  color-scheme: dark;
 }
 
-.btn-primary {
-  @apply px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition;
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
-.btn-secondary {
-  @apply px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition;
+@layer components {
+  /* Glass morphism card */
+  .glass-card {
+    background-color: var(--bg-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-primary);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-lg);
+    color: var(--text-primary);
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .glass-card-dark {
+    background-color: var(--bg-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-primary);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-xl);
+    color: var(--text-primary);
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  /* Premium buttons */
+  .btn-primary {
+    @apply px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none;
+  }
+  .btn-secondary {
+    @apply px-6 py-3 font-semibold rounded-xl active:scale-[0.98] transition-all duration-200;
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+  }
+  .btn-secondary:hover {
+    filter: brightness(0.95);
+  }
+  .btn-danger {
+    @apply px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-red-700 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-red-500/25;
+  }
+  .btn-success {
+    @apply px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-emerald-700 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-emerald-500/25;
+  }
+
+  /* Input fields — fully token-driven */
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all duration-200;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    color: var(--text-primary);
+  }
+  .input-field::placeholder { color: var(--text-tertiary); }
+  .select-field {
+    @apply w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all duration-200 appearance-none cursor-pointer;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    color: var(--text-primary);
+  }
+
+  /* Status pills */
+  .status-pill {
+    @apply px-3 py-1 rounded-full text-xs font-semibold tracking-wide uppercase;
+  }
+
+  /* Animations */
+  .animate-slide-up {
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+  .animate-scale-in {
+    animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .animate-pulse-soft {
+    animation: pulseSoft 2s ease-in-out infinite;
+  }
 }
 
-.btn-danger {
-  @apply px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition;
-}
+/* ── Dark mode adjustments for Tailwind utility colors ── */
+/* Headers & nav bars */
+html.dark .bg-white { background-color: var(--bg-secondary); }
+html.dark .border-gray-100 { border-color: var(--border-primary); }
+html.dark .border-gray-50 { border-color: var(--border-secondary); }
 
-.input-field {
-  @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500;
-}
+/* Text color overrides */
+html.dark .text-gray-900 { color: var(--text-primary); }
+html.dark .text-gray-800 { color: #e2e8f0; }
+html.dark .text-gray-700 { color: #cbd5e1; }
+html.dark .text-gray-600 { color: #94a3b8; }
+html.dark .text-gray-500 { color: #94a3b8; }
+html.dark .text-gray-400 { color: #64748b; }
+html.dark .text-gray-300 { color: #475569; }
 
-.card {
-  @apply bg-white rounded-lg shadow-md p-6;
+/* Soft background tiles (stat cards etc) */
+html.dark .bg-gray-50,
+html.dark .bg-gray-100 { background-color: var(--bg-tertiary); }
+html.dark .bg-blue-50 { background-color: rgba(59,130,246,0.12); }
+html.dark .bg-emerald-50 { background-color: rgba(16,185,129,0.12); }
+html.dark .bg-amber-50 { background-color: rgba(245,158,11,0.12); }
+html.dark .bg-red-50 { background-color: rgba(239,68,68,0.12); }
+html.dark .bg-violet-50 { background-color: rgba(139,92,246,0.12); }
+html.dark .bg-indigo-50 { background-color: rgba(99,102,241,0.12); }
+html.dark .bg-teal-50 { background-color: rgba(20,184,166,0.12); }
+
+/* Hover states */
+html.dark .hover\:bg-gray-100:hover { background-color: var(--bg-tertiary); }
+html.dark .hover\:bg-gray-50:hover { background-color: var(--bg-tertiary); }
+html.dark .hover\:bg-gray-200:hover { background-color: #334155; }
+
+/* Tables */
+html.dark .hover\:bg-gray-50\/50:hover { background-color: rgba(30,41,59,0.5); }
+
+/* Gradients on page bg */
+html.dark .from-slate-50 { --tw-gradient-from: #0c1222; }
+html.dark .to-gray-100 { --tw-gradient-to: #0c1222; }
+
+/* Border utilities */
+html.dark .border-white\/20 { border-color: rgba(255,255,255,0.06); }
+html.dark .border-gray-200 { border-color: #334155; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--text-tertiary); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes pulseSoft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
