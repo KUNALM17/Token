@@ -5,7 +5,7 @@ import {
   CalendarDays, Clock, CreditCard, Radio, MapPin, Stethoscope,
   ChevronRight, X, CheckCircle2, AlertCircle, Ticket, LogOut,
   Plus, RefreshCw, Download, FileText, Timer, UserCheck, Repeat, Sun, Moon,
-  Search, Building2, ChevronDown,
+  Search, Building2,
 } from 'lucide-react';
 import { useTheme } from '../theme';
 
@@ -670,158 +670,189 @@ export default function PatientDashboard({ user, onLogout }: { user: User; onLog
           <div className="mt-4 space-y-5 animate-fade-in">
             <h2 className="text-lg font-bold text-gray-900">Book Appointment</h2>
 
-            {/* Search bar */}
-            <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search hospitals or doctors..."
-                className="input-field pl-10 text-sm w-full"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-gray-100 rounded-full">
-                  <X className="w-4 h-4 text-gray-400" />
-                </button>
-              )}
-            </div>
+            {/* Search bar — only show when choosing hospital or doctor */}
+            {(selectedHospital === 0 || (selectedHospital > 0 && selectedDoctor === 0)) && (
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder={selectedHospital === 0 ? "Search hospitals..." : "Search doctors..."}
+                  className="input-field pl-10 text-sm w-full"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-gray-100 rounded-full">
+                    <X className="w-4 h-4 text-gray-400" />
+                  </button>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left: selection steps */}
             <div className="space-y-5">
 
-            {/* Step 1: Hospital cards */}
+            {/* ─── STEP 1: Select Hospital ─── */}
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block flex items-center gap-1.5">
                 <span className="w-5 h-5 bg-blue-100 text-blue-600 rounded-full inline-flex items-center justify-center text-[10px] font-bold">1</span>
                 Select Hospital
               </label>
-              {(() => {
-                const q = searchQuery.toLowerCase();
-                // Filter hospitals by search (hospital name, address, or doctor name/specialization if expanded)
-                const filteredHospitals = hospitals.filter(h => {
-                  if (!q) return true;
-                  const hospitalMatch = h.name.toLowerCase().includes(q) || h.address.toLowerCase().includes(q);
-                  // Also match if any loaded doctor for the selected hospital matches
-                  if (selectedHospital === h.id && doctors.length > 0) {
-                    const doctorMatch = doctors.some(d =>
-                      d.user?.name?.toLowerCase().includes(q) || d.specialization?.toLowerCase().includes(q)
-                    );
-                    return hospitalMatch || doctorMatch;
-                  }
-                  return hospitalMatch;
-                });
 
-                if (filteredHospitals.length === 0) {
+              {/* If hospital selected → show compact selected card */}
+              {selectedHospital > 0 ? (
+                <div className="animate-slide-up">
+                  {(() => {
+                    const h = hospitals.find(h => h.id === selectedHospital);
+                    if (!h) return null;
+                    return (
+                      <div className="flex items-center gap-3 p-3.5 rounded-xl border-2 border-blue-500 bg-blue-50/60">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-blue-500 to-indigo-600">
+                          <Building2 className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-gray-900 text-sm">{h.name}</h4>
+                          <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                            <MapPin className="w-3 h-3 flex-shrink-0" /><span className="truncate">{h.address}</span>
+                          </p>
+                        </div>
+                        <button onClick={() => { setSelectedHospital(0); setSelectedDoctor(0); setSelectedShift(0); setDoctors([]); setSearchQuery(''); }}
+                          className="px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors flex-shrink-0">
+                          Change
+                        </button>
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : (
+                /* Hospital list */
+                (() => {
+                  const q = searchQuery.toLowerCase();
+                  const filteredHospitals = hospitals.filter(h => {
+                    if (!q) return true;
+                    return h.name.toLowerCase().includes(q) || h.address.toLowerCase().includes(q);
+                  });
+
+                  if (filteredHospitals.length === 0) {
+                    return (
+                      <div className="bg-gray-50 rounded-xl p-6 text-center">
+                        <Building2 className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                        <p className="text-sm text-gray-400">No hospitals match your search</p>
+                      </div>
+                    );
+                  }
+
                   return (
-                    <div className="bg-gray-50 rounded-xl p-6 text-center">
-                      <Building2 className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                      <p className="text-sm text-gray-400">No hospitals match your search</p>
+                    <div className="space-y-2">
+                      {filteredHospitals.map(h => (
+                        <button key={h.id}
+                          onClick={() => { setSelectedHospital(h.id); setSelectedDoctor(0); setSelectedShift(0); setSearchQuery(''); }}
+                          className="w-full p-4 rounded-xl text-left transition-all border-2 border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm animate-slide-up"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-gray-100">
+                              <Building2 className="w-5 h-5 text-gray-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-gray-900 text-sm">{h.name}</h4>
+                              <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                                <MapPin className="w-3 h-3 flex-shrink-0" /><span className="truncate">{h.address}</span>
+                              </p>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   );
-                }
-
-                return (
-                  <div className="space-y-3">
-                    {filteredHospitals.map(h => {
-                      const isSelected = selectedHospital === h.id;
-                      return (
-                        <div key={h.id} className="animate-slide-up">
-                          {/* Hospital card */}
-                          <button
-                            onClick={() => {
-                              if (isSelected) { setSelectedHospital(0); setSelectedDoctor(0); setSelectedShift(0); setDoctors([]); }
-                              else { setSelectedHospital(h.id); setSelectedDoctor(0); setSelectedShift(0); }
-                            }}
-                            className={`w-full p-4 rounded-xl text-left transition-all border-2 ${
-                              isSelected ? 'border-blue-500 bg-blue-50/60 shadow-md shadow-blue-500/10' : 'border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm'
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                                isSelected ? 'bg-gradient-to-br from-blue-500 to-indigo-600' : 'bg-gray-100'
-                              }`}>
-                                <Building2 className={`w-5 h-5 ${isSelected ? 'text-white' : 'text-gray-400'}`} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-gray-900 text-sm">{h.name}</h4>
-                                <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                                  <MapPin className="w-3 h-3 flex-shrink-0" /><span className="truncate">{h.address}</span>
-                                </p>
-                              </div>
-                              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${isSelected ? 'rotate-180' : ''}`} />
-                            </div>
-                          </button>
-
-                          {/* Doctors nested inside selected hospital */}
-                          {isSelected && (
-                            <div className="mt-2 ml-4 pl-4 border-l-2 border-blue-200 space-y-2 animate-slide-up">
-                              <label className="text-sm font-medium text-gray-700 mb-1 block flex items-center gap-1.5">
-                                <span className="w-5 h-5 bg-blue-100 text-blue-600 rounded-full inline-flex items-center justify-center text-[10px] font-bold">2</span>
-                                Choose Doctor
-                              </label>
-                              {doctors.length === 0 ? (
-                                <div className="bg-gray-50 rounded-xl p-6 text-center">
-                                  <Stethoscope className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                                  <p className="text-sm text-gray-400">No doctors available</p>
-                                </div>
-                              ) : (
-                                <div className="grid grid-cols-1 lg:grid-cols-1 gap-2">
-                                  {doctors
-                                    .filter(d => {
-                                      if (!q) return true;
-                                      return d.user?.name?.toLowerCase().includes(q)
-                                        || d.specialization?.toLowerCase().includes(q)
-                                        || h.name.toLowerCase().includes(q)
-                                        || h.address.toLowerCase().includes(q);
-                                    })
-                                    .map(d => {
-                                      const isDSel = selectedDoctor === d.id;
-                                      const initial = (d.user?.name || 'D')[0].toUpperCase();
-                                      return (
-                                        <button key={d.id} onClick={() => { setSelectedDoctor(d.id); setSelectedShift(0); }}
-                                          className={`w-full p-3.5 rounded-xl text-left transition-all border-2 ${
-                                            isDSel ? 'border-emerald-500 bg-emerald-50/50 shadow-md shadow-emerald-500/10' : 'border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm'
-                                          }`}>
-                                          <div className="flex items-center gap-3">
-                                            <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${
-                                              isDSel ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white' : 'bg-gray-100 text-gray-500'
-                                            }`}>
-                                              {initial}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                              <h4 className="font-semibold text-gray-900 text-sm truncate">Dr. {d.user?.name}</h4>
-                                              <p className="text-xs text-gray-400 truncate">{d.specialization}</p>
-                                              {d.shifts && d.shifts.length > 0 && (
-                                                <p className="text-[10px] text-gray-300 mt-0.5">{d.shifts.length} shift{d.shifts.length > 1 ? 's' : ''} available</p>
-                                              )}
-                                            </div>
-                                            <div className="text-right flex-shrink-0">
-                                              <span className="text-sm font-bold text-emerald-600">{String.fromCharCode(8377)}{d.consultationFee}</span>
-                                              {d.avgConsultTime && (
-                                                <p className="text-[10px] text-gray-300 flex items-center justify-end gap-0.5 mt-0.5">
-                                                  <Timer className="w-2.5 h-2.5" />{d.avgConsultTime}m/patient
-                                                </p>
-                                              )}
-                                            </div>
-                                          </div>
-                                        </button>
-                                      );
-                                    })}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
+                })()
+              )}
             </div>
 
-            {/* Step 3: Date */}
+            {/* ─── STEP 2: Select Doctor (only after hospital selected) ─── */}
+            {selectedHospital > 0 && (
+              <div className="animate-slide-up">
+                <label className="text-sm font-medium text-gray-700 mb-2 block flex items-center gap-1.5">
+                  <span className="w-5 h-5 bg-blue-100 text-blue-600 rounded-full inline-flex items-center justify-center text-[10px] font-bold">2</span>
+                  Choose Doctor
+                </label>
+
+                {/* If doctor selected → show compact selected card */}
+                {selectedDoctor > 0 ? (
+                  (() => {
+                    const d = doctors.find(d => d.id === selectedDoctor);
+                    if (!d) return null;
+                    const initial = (d.user?.name || 'D')[0].toUpperCase();
+                    return (
+                      <div className="flex items-center gap-3 p-3.5 rounded-xl border-2 border-emerald-500 bg-emerald-50/50 animate-slide-up">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+                          {initial}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-gray-900 text-sm truncate">Dr. {d.user?.name}</h4>
+                          <p className="text-xs text-gray-400 truncate">{d.specialization}</p>
+                        </div>
+                        <div className="text-right mr-2 flex-shrink-0">
+                          <span className="text-sm font-bold text-emerald-600">{String.fromCharCode(8377)}{d.consultationFee}</span>
+                        </div>
+                        <button onClick={() => { setSelectedDoctor(0); setSelectedShift(0); setSearchQuery(''); }}
+                          className="px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-100 rounded-lg hover:bg-emerald-200 transition-colors flex-shrink-0">
+                          Change
+                        </button>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  /* Doctor list */
+                  doctors.length === 0 ? (
+                    <div className="bg-gray-50 rounded-xl p-6 text-center">
+                      <Stethoscope className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm text-gray-400">No doctors available</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {doctors
+                        .filter(d => {
+                          const q = searchQuery.toLowerCase();
+                          if (!q) return true;
+                          return d.user?.name?.toLowerCase().includes(q) || d.specialization?.toLowerCase().includes(q);
+                        })
+                        .map(d => {
+                          const initial = (d.user?.name || 'D')[0].toUpperCase();
+                          return (
+                            <button key={d.id} onClick={() => { setSelectedDoctor(d.id); setSelectedShift(0); setSearchQuery(''); }}
+                              className="w-full p-3.5 rounded-xl text-left transition-all border-2 border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm animate-slide-up">
+                              <div className="flex items-center gap-3">
+                                <div className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-gray-100 text-gray-500">
+                                  {initial}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-gray-900 text-sm truncate">Dr. {d.user?.name}</h4>
+                                  <p className="text-xs text-gray-400 truncate">{d.specialization}</p>
+                                  {d.shifts && d.shifts.length > 0 && (
+                                    <p className="text-[10px] text-gray-300 mt-0.5">{d.shifts.length} shift{d.shifts.length > 1 ? 's' : ''} available</p>
+                                  )}
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  <span className="text-sm font-bold text-emerald-600">{String.fromCharCode(8377)}{d.consultationFee}</span>
+                                  {d.avgConsultTime && (
+                                    <p className="text-[10px] text-gray-300 flex items-center justify-end gap-0.5 mt-0.5">
+                                      <Timer className="w-2.5 h-2.5" />{d.avgConsultTime}m/patient
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+
+            {/* ─── STEP 3: Date (only after doctor selected) ─── */}
             {selectedDoctor > 0 && (
               <div className="animate-slide-up">
                 <label className="text-sm font-medium text-gray-700 mb-1.5 block flex items-center gap-1.5">
@@ -839,7 +870,7 @@ export default function PatientDashboard({ user, onLogout }: { user: User; onLog
               </div>
             )}
 
-            {/* Step 4: Shift cards */}
+            {/* ─── STEP 4: Shift cards (only after doctor selected & shifts loaded) ─── */}
             {selectedDoctor > 0 && shifts.length > 0 && (
               <div className="animate-slide-up">
                 <label className="text-sm font-medium text-gray-700 mb-2 block flex items-center gap-1.5">
