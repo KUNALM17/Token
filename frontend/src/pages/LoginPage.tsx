@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import API from '../api';
 import { Phone, Lock, Clock, CreditCard, Users, Shield, Activity, ArrowRight, CheckCircle2, Sparkles, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../theme';
 
-export const LoginPage: React.FC = () => {
+export const LoginPage: React.FC<{ onLogin?: (user: any) => void }> = ({ onLogin }) => {
   const { theme, toggle, isDark } = useTheme();
   const [showLogin, setShowLogin] = useState(false);
   const [step, setStep] = useState<'phone' | 'otp' | 'register'>('phone');
@@ -19,7 +18,6 @@ export const LoginPage: React.FC = () => {
   const [city, setCity] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,11 +44,8 @@ export const LoginPage: React.FC = () => {
       const res = await API.post('/auth/verify-otp', { phone, otp, name: name || undefined, age: age || undefined, gender: gender || undefined, weight: weight || undefined, city: city || undefined });
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
-      const role = res.data.user.role;
-      if (role === 'SUPER_ADMIN') navigate('/super-admin');
-      else if (role === 'HOSPITAL_ADMIN') navigate('/admin');
-      else if (role === 'DOCTOR') navigate('/doctor');
-      else navigate('/patient');
+      // Calling onLogin updates App state → the "/" route auto-redirects to the dashboard
+      if (onLogin) onLogin(res.data.user);
     } catch (err: any) { setError(err.response?.data?.error || 'Login failed'); }
     finally { setLoading(false); }
   };
