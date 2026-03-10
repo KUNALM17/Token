@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { LoginPage } from './pages/LoginPage';
+
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import HospitalAdminDashboard from './pages/HospitalAdminDashboard';
 import DoctorDashboard from './pages/DoctorDashboard';
@@ -49,6 +50,7 @@ function LoadingScreen() {
 function AppRoutes() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const handleLogout = useCallback(() => {
     setUser(null);
@@ -138,31 +140,37 @@ function AppRoutes() {
   const handleLogin = useCallback((u: any) => {
     setUser(u);
     localStorage.setItem('user', JSON.stringify(u));
-  }, []);
+    // Imperatively navigate so the dashboard renders immediately without waiting for a re-render cycle
+    const dest =
+      u.role === 'SUPER_ADMIN' ? '/super-admin' :
+      u.role === 'HOSPITAL_ADMIN' ? '/admin' :
+      u.role === 'DOCTOR' ? '/doctor' : '/patient';
+    navigate(dest, { replace: true });
+  }, [navigate]);
 
   if (loading) return <LoadingScreen />;
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={user ? <Navigate to={
-          user.role === 'SUPER_ADMIN' ? '/super-admin' :
-          user.role === 'HOSPITAL_ADMIN' ? '/admin' :
-          user.role === 'DOCTOR' ? '/doctor' : '/patient'
-        } /> : <LoginPage />} />
-        <Route path="/super-admin" element={<DashboardWrapper Component={SuperAdminDashboard} allowedRoles={['SUPER_ADMIN']} user={user} onLogout={handleLogout} />} />
-        <Route path="/admin" element={<DashboardWrapper Component={HospitalAdminDashboard} allowedRoles={['HOSPITAL_ADMIN']} user={user} onLogout={handleLogout} />} />
-        <Route path="/doctor" element={<DashboardWrapper Component={DoctorDashboard} allowedRoles={['DOCTOR']} user={user} onLogout={handleLogout} />} />
-        <Route path="/patient" element={<DashboardWrapper Component={PatientDashboard} allowedRoles={['PATIENT']} user={user} onLogout={handleLogout} />} />
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      <Route path="/" element={user ? <Navigate to={
+        user.role === 'SUPER_ADMIN' ? '/super-admin' :
+        user.role === 'HOSPITAL_ADMIN' ? '/admin' :
+        user.role === 'DOCTOR' ? '/doctor' : '/patient'
+      } replace /> : <LoginPage onLogin={handleLogin} />} />
+      <Route path="/super-admin" element={<DashboardWrapper Component={SuperAdminDashboard} allowedRoles={['SUPER_ADMIN']} user={user} onLogout={handleLogout} />} />
+      <Route path="/admin" element={<DashboardWrapper Component={HospitalAdminDashboard} allowedRoles={['HOSPITAL_ADMIN']} user={user} onLogout={handleLogout} />} />
+      <Route path="/doctor" element={<DashboardWrapper Component={DoctorDashboard} allowedRoles={['DOCTOR']} user={user} onLogout={handleLogout} />} />
+      <Route path="/patient" element={<DashboardWrapper Component={PatientDashboard} allowedRoles={['PATIENT']} user={user} onLogout={handleLogout} />} />
+    </Routes>
   );
 }
 
 export default function App() {
   return (
     <ThemeProvider>
-      <AppRoutes />
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
     </ThemeProvider>
   );
 }
