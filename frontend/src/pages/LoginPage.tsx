@@ -10,7 +10,6 @@ export const LoginPage: React.FC<{ onLogin?: (user: any) => void }> = ({ onLogin
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [displayOtp, setDisplayOtp] = useState('');
-  const [isNewUser, setIsNewUser] = useState(false);
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('');
@@ -25,28 +24,41 @@ export const LoginPage: React.FC<{ onLogin?: (user: any) => void }> = ({ onLogin
     try {
       const res = await API.post('/auth/send-otp', { phone });
       setDisplayOtp(res.data.otp || '');
-      setIsNewUser(res.data.isNewUser);
       setStep('otp');
-      if (!res.data.otp) setError('');
     } catch (err: any) { setError(err.response?.data?.error || 'Failed to send OTP'); }
     finally { setLoading(false); }
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isNewUser) { setStep('register'); return; }
-    await doLogin();
+    setLoading(true); setError('');
+    try {
+      // Always validate OTP with backend immediately — don't wait until register submit
+      const res = await API.post('/auth/verify-otp', { phone, otp });
+      if (res.data.verified && res.data.isNewUser) {
+        // OTP is valid, new user — go to register step (backend holds a verified token for 10 min)
+        setStep('register');
+      } else {
+        // Existing user — backend returned token + user directly
+        finishLogin(res.data);
+      }
+    } catch (err: any) { setError(err.response?.data?.error || 'OTP verification failed'); }
+    finally { setLoading(false); }
+  };
+
+  const finishLogin = (data: any) => {
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    if (onLogin) onLogin(data.user);
   };
 
   const doLogin = async () => {
+    // Called from register form — OTP already verified, just complete profile
     setLoading(true); setError('');
     try {
       const res = await API.post('/auth/verify-otp', { phone, otp, name: name || undefined, age: age || undefined, gender: gender || undefined, weight: weight || undefined, city: city || undefined });
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-      // Calling onLogin updates App state → the "/" route auto-redirects to the dashboard
-      if (onLogin) onLogin(res.data.user);
-    } catch (err: any) { setError(err.response?.data?.error || 'Login failed'); }
+      finishLogin(res.data);
+    } catch (err: any) { setError(err.response?.data?.error || 'Registration failed'); }
     finally { setLoading(false); }
   };
 
