@@ -1,185 +1,149 @@
-# 🏥 Hospital Token System - MVP
+# 🏥 TokenQ — Digital Hospital Queue & Appointment Management System
 
-A production-ready appointment management system with token-based queue, OTP authentication, and Razorpay payments.
+<p align="center">
+  <strong>A production-ready healthcare management platform with digital token queues, OTP authentication, and integrated payments.</strong>
+</p>
 
-## 🚀 Quick Start
+<p align="center">
+  <a href="https://token-sooty-tau.vercel.app" target="_blank">🌐 Live Demo</a> •
+  <a href="#-features">✨ Features</a> •
+  <a href="#-tech-stack">🛠️ Tech Stack</a> •
+  <a href="#-installation--setup">🚀 Installation</a> •
+  <a href="#-api-documentation">📖 API Docs</a>
+</p>
 
-### 1. Setup Database
-See: **[SETUP.md](./SETUP.md)** - Run the SQL file in Supabase
+---
 
-### 2. Servers (Already Running)
-- **Frontend**: http://localhost:5173
-- **Backend**: http://localhost:5000
+## 📋 Table of Contents
 
-### 3. Test
-Open http://localhost:5173 and login with phone `9000000100`
+1. [Overview](#-overview)
+2. [Live Demo](#-live-demo)
+3. [Features](#-features)
+4. [Tech Stack](#-tech-stack)
+5. [Prerequisites](#-prerequisites)
+6. [Installation & Setup](#-installation--setup)
+7. [Project Structure](#-project-structure)
+8. [Database Setup](#-database-setup)
+9. [Seeding Data](#-seeding-data)
+10. [Running the Application](#-running-the-application)
+11. [API Documentation](#-api-documentation)
+12. [User Roles](#-user-roles)
+13. [Features Explained](#-features-explained)
+14. [Deployment](#-deployment)
+15. [Configuration](#-configuration)
+16. [Contributing](#-contributing)
+17. [License](#-license)
+18. [Support & Contact](#-support--contact)
+
+---
+
+## 🩺 Overview
+
+**TokenQ** is a full-stack Digital Hospital Queue & Appointment Management System designed to modernize patient flow in hospitals and clinics. It replaces traditional paper-based token systems with a real-time digital queue, enabling patients to book appointments online, track their queue position, and receive SMS notifications.
+
+### Key Use Cases
+
+- **Hospitals & Clinics** — Manage multiple doctors, shifts, and patient queues from a single admin dashboard.
+- **Patients** — Browse hospitals, check real-time doctor availability, book appointments, and pay online.
+- **Doctors** — View and manage today's patient queue, mark consultations as complete.
+- **Healthcare Administrators** — Oversee hospital operations, manage staff, and export daily reports.
+
+---
+
+## 🌐 Live Demo
+
+> **[https://token-sooty-tau.vercel.app](https://token-sooty-tau.vercel.app)**
+
+Use the following test phone numbers after seeding the database (OTP appears in the backend console during development):
+
+| Role | Phone Number |
+|------|-------------|
+| Super Admin | `9000000001` |
+| Hospital Admin | `9000000002` |
+| Doctor (Cardiology) | `9000000003` |
+| Doctor (Pediatrics) | `9000000004` |
+| Doctor (Dermatology) | `9000000005` |
+| Patient | `9000000100` |
 
 ---
 
 ## ✨ Features
 
-✅ Token queue system (sequential tokens per doctor per day)
-✅ OTP authentication (Fast2SMS)
-✅ Razorpay payments (test mode ready)
-✅ 4 role-based dashboards (Patient, Doctor, Admin, Super Admin)
-✅ Queue management (call next, skip, complete)
-✅ CSV export for hospital admin
-✅ PostgreSQL + Prisma ORM
-✅ TypeScript + React + Vite + Tailwind
-
----
-
-## 📁 Project Structure
-
-```
-backend/           → Node.js API (27 endpoints)
-frontend/          → React UI (5 dashboards)
-SETUP.md          → Setup instructions
-SETUP_DATABASE.sql → Database schema + demo data
-```
-
----
-
-## 🔑 Credentials
-
-**Database**: `postgresql://postgres:Il5Hdcw1t3yvxkuJ@db.oilwihrsslsscojtpghe.supabase.co:5432/postgres`
-
-**API Keys**: ✅ All configured in `/backend/.env`
-
----
-
-## 📚 Documentation
-
-- **SETUP.md** - How to get started (recommended read first)
-- **backend/README.md** - Backend API documentation
-- **frontend/README.md** - Frontend setup guide
-
----
-
-## 🧪 Test Accounts
-
-After running SETUP_DATABASE.sql:
-
-```
-Patient:       9000000100
-Doctor:        9000000003
-Admin:         9000000002
-Super Admin:   9000000001
-```
-
-Login via OTP (check backend console for code)
-
----
-
-## 🎯 API Endpoints (27 Total)
-
-### Authentication (3)
-- `POST /auth/send-otp` - Send OTP to phone
-- `POST /auth/verify-otp` - Verify OTP and get JWT
-- `GET /auth/me` - Get current user
-
-### Patient (6)
-- `GET /patient/hospitals` - List all hospitals
-- `GET /patient/hospitals/:id/doctors` - Get doctors in hospital
-- `GET /patient/doctors/:id/availability` - Check availability
-- `POST /patient/appointments/book` - Book appointment
-- `GET /patient/appointments/my` - Get my appointments
-- `GET /patient/appointments/:id/status` - Check status
-
-### Hospital Admin (9)
-- `GET /admin/appointments/today` - View today's queue
-- `POST /admin/appointments/:id/call-next` - Call next patient
-- `POST /admin/appointments/:id/skip` - Skip patient
-- `POST /admin/appointments/:id/complete` - Mark complete
-- `POST /admin/doctors` - Create doctor
-- `GET /admin/doctors` - List doctors
-- `PUT /admin/doctors/:id` - Update doctor
-- `GET /admin/export/csv` - Export CSV
-- [+1 more]
-
-### Doctor (2)
-- `GET /doctor/today-queue` - View queue
-- `POST /doctor/appointments/:id/complete` - Mark complete
-
-### Payments (3)
-- `POST /payments/create-order` - Create Razorpay order
-- `POST /payments/webhook` - Payment webhook
-- `GET /payments/appointment/:id` - Check payment status
-
-### Super Admin (4)
-- `POST /super-admin/hospitals` - Create hospital
-- `GET /super-admin/hospitals` - List hospitals
-- `PUT /super-admin/hospitals/:id/status` - Toggle status
-- `POST /super-admin/hospital-admins` - Create admin
+- 🎟️ **Digital Token Queue** — Sequential, concurrency-safe token assignment per doctor per shift per day
+- 📱 **OTP Authentication** — Passwordless phone-based login via Fast2SMS
+- 💳 **Razorpay Payments** — Integrated UPI & card payments for appointment fees
+- 👥 **4 Role-Based Dashboards** — Patient, Doctor, Hospital Admin, Super Admin
+- 🔄 **Queue Management** — Call Next, Skip, and Complete actions for admins and doctors
+- 📅 **Shift Management** — Multiple shifts per doctor with configurable token limits and working days
+- 🗓️ **Leave Management** — Mark doctor leaves; auto-block slots on leave dates
+- 📊 **CSV Export** — Daily appointment export for hospital admins
+- ⚡ **Auto-Shift Stale Appointments** — Automatically reschedules unviewed past appointments to today
+- 🔒 **JWT-Based Security** — Role-protected API routes with middleware guards
+- 📡 **Redis Caching** — Optional Upstash Redis with in-memory fallback for OTP rate limiting
+- 🌐 **CORS Configured** — Environment-aware cross-origin setup for dev and production
 
 ---
 
 ## 🛠️ Tech Stack
 
-**Backend**: Node.js • Express • TypeScript • Prisma ORM • JWT • Fast2SMS • Razorpay
-**Frontend**: React 18 • Vite • Tailwind CSS • React Router • Axios
-**Database**: PostgreSQL (Supabase)
+### Frontend
+| Technology | Version | Purpose |
+|-----------|---------|---------|
+| React | 18.x | UI framework |
+| TypeScript | 5.x | Type safety |
+| Vite | 5.x | Build tool & dev server |
+| Tailwind CSS | 3.x | Utility-first styling |
+| React Router | 6.x | Client-side routing |
+| Axios | 1.x | HTTP client |
+| Lucide React | 0.293+ | Icon library |
+
+### Backend
+| Technology | Version | Purpose |
+|-----------|---------|---------|
+| Node.js | 18+ | Runtime environment |
+| Express | 4.x | Web framework |
+| TypeScript | 5.x | Type safety |
+| Prisma ORM | 5.x | Database toolkit & migrations |
+| JSON Web Token | 9.x | Authentication |
+| Fast2SMS | — | OTP delivery via SMS |
+| Razorpay | 2.x | Payment gateway |
+| Redis (Upstash) | 4.x | Caching & rate limiting |
+| bcrypt | 5.x | Password hashing |
+
+### Database
+| Technology | Purpose |
+|-----------|---------|
+| PostgreSQL 12+ | Primary relational database |
+| Supabase (optional) | Managed PostgreSQL hosting |
+| Prisma Migrations | Schema versioning |
 
 ---
 
-## 📊 Database Schema
+## 📦 Prerequisites
 
-8 tables with relationships:
-- User (all roles)
-- Hospital
-- Doctor
-- Appointment (unique tokens per day)
-- Payment
-- OTP
-- Indexes for performance
-- Constraints for data integrity
+Ensure the following are installed before proceeding:
 
----
+- **Node.js** v18+ — [Download](https://nodejs.org/)
+- **npm** v9+ (bundled with Node.js) or **yarn**
+- **PostgreSQL** 12+ — [Download](https://www.postgresql.org/download/) or use [Supabase](https://supabase.com/)
+- **Git** — [Download](https://git-scm.com/)
 
-## ✅ Status
-
-| Component | Status |
-|-----------|--------|
-| Frontend | ✅ Running |
-| Backend | ✅ Running |
-| Database | ⏳ Waiting for SETUP_DATABASE.sql |
+Optional:
+- **Docker** — for containerized PostgreSQL
+- **Prisma Studio** — included via `npx prisma studio`
 
 ---
 
-## 🎉 Next Steps
+## 🚀 Installation & Setup
 
-1. **→ Open SETUP.md**
-2. Run SETUP_DATABASE.sql in Supabase
-3. Test at http://localhost:5173
-
-That's it! 🚀
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- **Node.js** v18+ (LTS)
-- **PostgreSQL** 12+ (active on localhost:5432)
-- **npm** or **yarn**
-
-### 1️⃣ Database Setup
-
-Your PostgreSQL is already active on port 5432. Create the database:
+### Clone the Repository
 
 ```bash
-# Connect to PostgreSQL
-psql -U postgres
-
-# Create database
-CREATE DATABASE hospital_token_db;
-
-# Exit
-\q
+git clone https://github.com/KUNALM17/Token.git
+cd Token
 ```
 
-### 2️⃣ Backend Setup
+### Backend Setup
 
 ```bash
 cd backend
@@ -189,27 +153,34 @@ npm install
 
 # Copy environment file
 cp .env.example .env
+```
 
-# Update .env with your database credentials:
-DATABASE_URL="postgresql://user:password@localhost:5432/hospital_token_db"
+Open `backend/.env` and update the following values:
 
-# The API keys are already in .env.example - keep them as is
+```env
+DATABASE_URL="postgresql://your_user:your_password@localhost:5432/hospital_token_db"
+JWT_SECRET="your-strong-secret-key"
+```
 
-# Run migrations
+See the [Configuration](#-configuration) section for all available environment variables.
+
+```bash
+# Run database migrations
 npm run prisma:migrate
 
-# Seed sample data (creates demo users, hospitals, doctors)
+# Seed sample data
 npm run prisma:seed
 
 # Start development server
 npm run dev
 ```
 
-Server will run on **http://localhost:5000**
+The backend API will be available at **http://localhost:5000**.
 
-### 3️⃣ Frontend Setup
+### Frontend Setup
 
 ```bash
+# From the project root
 cd frontend
 
 # Install dependencies
@@ -219,239 +190,494 @@ npm install
 npm run dev
 ```
 
-Frontend will run on **http://localhost:5173**
+The frontend will be available at **http://localhost:5173**.
 
 ---
 
-## 🔐 Included API Keys (Development)
+## 📁 Project Structure
 
 ```
-FAST2SMS_API_KEY=KZQnfzDa3XCO2dUWtuMxG0Sk9eyw8TgplbBHNJYFoVrv7hIA6mwZmaRAyL6XlKJgb0Tzu5MOs8WhoNSv
-RAZORPAY_KEY_ID=rzp_test_SJv40kfG0d9ORd
-RAZORPAY_KEY_SECRET=15XlD4zY9DhCjnLdlUp8M156
-```
-
----
-
-## 👥 Test Credentials (Auto-Generated)
-
-Login with these phone numbers. OTP will be **logged to console** in dev mode:
-
-| Role | Phone | Password |
-|------|-------|----------|
-| Super Admin | 9000000001 | (OTP from console) |
-| Hospital Admin | 9000000002 | (OTP from console) |
-| Doctor (Cardiology, 70 tokens/day) | 9000000003 | (OTP from console) |
-| Doctor (Pediatrics, 50 tokens/day) | 9000000004 | (OTP from console) |
-| Doctor (Dermatology, 60 tokens/day) | 9000000005 | (OTP from console) |
-| Patient | 9000000100+ | (OTP from console) |
-
----
-
-## 🔐 API Endpoints
-
-### Authentication
-```
-POST   /auth/send-otp              Send OTP to phone
-POST   /auth/verify-otp            Verify OTP & login/register
-GET    /auth/me                    Get current user
-```
-
-### Super Admin
-```
-POST   /super-admin/hospitals           Create hospital
-GET    /super-admin/hospitals           Get all hospitals
-PUT    /super-admin/hospitals/:id/status Update hospital status
-POST   /super-admin/hospital-admins     Create hospital admin
-```
-
-### Hospital Admin
-```
-POST   /admin/doctors               Create doctor
-GET    /admin/doctors               Get doctors
-PUT    /admin/doctors/:id           Update doctor
-GET    /admin/appointments/today    Get today's queue
-POST   /admin/appointments/:id/call-next      Call next patient
-POST   /admin/appointments/:id/skip           Skip appointment
-POST   /admin/appointments/:id/complete       Mark complete
-GET    /admin/export/csv            Export CSV
-```
-
-### Doctor
-```
-GET    /doctor/today-queue          Get today's queue
-POST   /doctor/appointments/:id/complete   Mark complete
-```
-
-### Patient
-```
-GET    /patient/hospitals                     Get all hospitals
-GET    /patient/hospitals/:id/doctors         Get doctors
-GET    /patient/doctors/:id/availability?date=YYYY-MM-DD  Check availability
-POST   /patient/appointments/book            Book appointment
-GET    /patient/appointments/my              Get my appointments
-GET    /patient/appointments/:id/status      Get status
-```
-
-### Payments
-```
-POST   /payments/create-order      Create Razorpay order
-POST   /payments/webhook            Payment verification
-GET    /payments/appointment/:id    Get payment status
+Token/
+├── backend/                    # Node.js + Express API
+│   ├── prisma/
+│   │   ├── schema.prisma       # Database schema (8 models)
+│   │   └── seed.ts             # Demo data seeder
+│   ├── src/
+│   │   ├── middleware/
+│   │   │   ├── auth.ts         # JWT authentication guard
+│   │   │   ├── errorHandler.ts # Global error handler
+│   │   │   └── validation.ts   # Request validation
+│   │   ├── routes/
+│   │   │   ├── auth.routes.ts          # OTP login/register
+│   │   │   ├── patient.routes.ts       # Patient endpoints
+│   │   │   ├── doctor.routes.ts        # Doctor endpoints
+│   │   │   ├── hospitalAdmin.routes.ts # Admin endpoints
+│   │   │   ├── superAdmin.routes.ts    # Super admin endpoints
+│   │   │   └── payment.routes.ts       # Razorpay integration
+│   │   ├── services/
+│   │   │   ├── jwt.service.ts          # Token generation/verification
+│   │   │   ├── sms.service.ts          # Fast2SMS OTP delivery
+│   │   │   ├── payment.service.ts      # Razorpay order/verify
+│   │   │   └── redis.service.ts        # Redis/in-memory cache
+│   │   └── index.ts            # App entry point
+│   ├── .env.example            # Environment variable template
+│   ├── package.json
+│   └── tsconfig.json
+│
+├── frontend/                   # React + Vite SPA
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── LoginPage.tsx               # Phone OTP login
+│   │   │   ├── PatientDashboard.tsx        # Patient view
+│   │   │   ├── DoctorDashboard.tsx         # Doctor queue view
+│   │   │   ├── HospitalAdminDashboard.tsx  # Admin controls
+│   │   │   └── SuperAdminDashboard.tsx     # System management
+│   │   ├── api.ts              # Axios API client
+│   │   ├── types.ts            # TypeScript interfaces
+│   │   ├── theme.tsx           # UI theme configuration
+│   │   ├── App.tsx             # Routing & auth context
+│   │   └── main.tsx            # Entry point
+│   ├── index.html
+│   ├── tailwind.config.js
+│   ├── vite.config.ts
+│   └── package.json
+│
+├── .gitignore
+└── README.md
 ```
 
 ---
 
-## 🎨 Dashboard Features
+## 🗄️ Database Setup
 
-### Patient Dashboard
-- ✅ Browse hospitals & doctors
-- ✅ Check real-time availability (10 slots remaining, etc.)
-- ✅ Book appointments (redirects to Razorpay)
-- ✅ View appointment history with status
+### Option 1 — Local PostgreSQL (Manual)
 
-### Hospital Admin Dashboard
-- ✅ Queue Management: Call Next, Skip, Mark Complete
-- ✅ Real-time stats (Booked: 12, Called: 5, Completed: 8)
-- ✅ Doctor management & fee configuration
-- ✅ CSV export of daily appointments
-- ✅ Progress bar: "12/70" (token, daily limit)
+```bash
+# Connect to PostgreSQL
+psql -U postgres
 
-### Doctor Dashboard
-- ✅ View today's queue with real-time updates
-- ✅ See next called appointment (highlighted)
-- ✅ Mark appointments as complete
-- ✅ Auto-advances to next patient
+# Create the database
+CREATE DATABASE hospital_token_db;
+\q
 
-### Super Admin Dashboard
-- ✅ Create hospitals
-- ✅ Manage hospital status
-- ✅ Create hospital admins
-- ✅ View all hospitals with details
+# Run Prisma migrations from the backend folder
+cd backend
+npm run prisma:migrate
+```
+
+### Option 2 — Docker
+
+```bash
+# Start a PostgreSQL container
+docker run --name tokenq-db \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=hospital_token_db \
+  -p 5432:5432 \
+  -d postgres:15
+
+# Then run migrations
+cd backend
+npm run prisma:migrate
+```
+
+### Option 3 — Supabase (Cloud)
+
+1. Create a free project at [supabase.com](https://supabase.com/)
+2. Copy the connection string from **Settings → Database**
+3. Update `DATABASE_URL` and `DIRECT_URL` in `backend/.env`
+4. Run migrations:
+
+```bash
+cd backend
+npm run prisma:migrate
+```
+
+### Option 4 — Clean Reset
+
+```bash
+# ⚠️ This deletes all data and re-applies all migrations
+cd backend
+npx prisma migrate reset
+```
+
+### Database Schema
+
+The database consists of **8 models**:
+
+| Model | Description |
+|-------|-------------|
+| `User` | All roles (Patient, Doctor, Admin, Super Admin) |
+| `Hospital` | Hospital/clinic details |
+| `Doctor` | Doctor profiles linked to a User and Hospital |
+| `DoctorShift` | Shift configurations with token limits and working days |
+| `DoctorLeave` | Leave dates per doctor/shift |
+| `Appointment` | Bookings with token numbers, status, and payment |
+| `Payment` | Razorpay payment records per appointment |
+| `OTP` | OTP codes with expiry for phone authentication |
 
 ---
 
-## 💳 Payment Integration
+## 🌱 Seeding Data
 
-**Razorpay Hosted Checkout (UPI + Cards)**
+Populate the database with demo hospitals, doctors, and patient accounts:
 
-1. Patient books appointment → Payment status: PENDING
-2. Patient clicks "Proceed to Payment"
-3. Razorpay UPI/Card checkout opens
-4. Test card: `4111 1111 1111 1111` | Any date | Any CVV
-5. Payment confirmed → Appointment becomes BOOKED
-6. Patient can see "Payment: PAID" status
+```bash
+cd backend
+npm run prisma:seed
+```
+
+This creates the following test accounts (OTP will be logged to the console in development):
+
+| Role | Phone | Details |
+|------|-------|---------|
+| Super Admin | `9000000001` | Full system access |
+| Hospital Admin | `9000000002` | Manages City General Hospital |
+| Doctor | `9000000003` | Cardiology — 70 tokens/day |
+| Doctor | `9000000004` | Pediatrics — 50 tokens/day |
+| Doctor | `9000000005` | Dermatology — 60 tokens/day |
+| Patient | `9000000100` | Sample patient account |
 
 ---
 
-## 🔄 Token Queue Logic (Concurrency-Safe)
+## ▶️ Running the Application
+
+### Development Mode
+
+**Terminal 1 — Backend:**
+
+```bash
+cd backend
+npm run dev
+# API running at http://localhost:5000
+```
+
+**Terminal 2 — Frontend:**
+
+```bash
+cd frontend
+npm run dev
+# App running at http://localhost:5173
+```
+
+### Production Build
+
+**Backend:**
+
+```bash
+cd backend
+npm run build       # Compiles TypeScript to dist/
+npm run start       # Runs compiled output
+```
+
+**Frontend:**
+
+```bash
+cd frontend
+npm run build       # Outputs to dist/
+npm run preview     # Preview the production build locally
+```
+
+### Useful Commands
+
+```bash
+# Backend
+npm run prisma:studio    # Visual database browser at http://localhost:5555
+npm run prisma:generate  # Regenerate Prisma client after schema changes
+
+# Frontend
+npm run lint             # ESLint checks
+```
+
+---
+
+## 📖 API Documentation
+
+Base URL (development): `http://localhost:5000`
+
+All protected routes require the `Authorization: Bearer <token>` header.
+
+### 🔐 Authentication
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `POST` | `/auth/send-otp` | Send OTP to phone number | No |
+| `POST` | `/auth/verify-otp` | Verify OTP and receive JWT | No |
+| `GET` | `/auth/me` | Get current authenticated user | Yes |
+
+**Send OTP request:**
+```json
+{ "phone": "9000000100" }
+```
+
+**Verify OTP request:**
+```json
+{ "phone": "9000000100", "otp": "123456" }
+```
+
+---
+
+### 🧑‍⚕️ Patient Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/patient/hospitals` | List all active hospitals |
+| `GET` | `/patient/hospitals/:id/doctors` | Get doctors for a hospital |
+| `GET` | `/patient/doctors/:id/availability?date=YYYY-MM-DD` | Check slot availability |
+| `POST` | `/patient/appointments/book` | Book an appointment |
+| `GET` | `/patient/appointments/my` | Get my appointment history |
+| `GET` | `/patient/appointments/:id/status` | Get appointment status |
+
+**Book appointment request:**
+```json
+{
+  "doctorId": 1,
+  "hospitalId": 1,
+  "shiftId": 1,
+  "appointmentDate": "2026-03-15"
+}
+```
+
+---
+
+### 🏥 Hospital Admin Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/hospital-admin/doctors` | Create a doctor account |
+| `GET` | `/hospital-admin/doctors` | List hospital doctors |
+| `PUT` | `/hospital-admin/doctors/:id` | Update doctor details |
+| `GET` | `/hospital-admin/appointments/today` | View today's full queue |
+| `POST` | `/hospital-admin/appointments/:id/call-next` | Call the next patient |
+| `POST` | `/hospital-admin/appointments/:id/skip` | Skip an appointment |
+| `POST` | `/hospital-admin/appointments/:id/complete` | Mark appointment as complete |
+| `GET` | `/hospital-admin/export/csv` | Export daily appointments as CSV |
+
+---
+
+### 👨‍⚕️ Doctor Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/doctor/today-queue` | View today's patient queue |
+| `POST` | `/doctor/appointments/:id/complete` | Mark consultation complete |
+
+---
+
+### 💳 Payment Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/payments/create-order` | Create a Razorpay payment order |
+| `POST` | `/payments/webhook` | Handle Razorpay payment webhook |
+| `GET` | `/payments/appointment/:id` | Get payment status for an appointment |
+
+---
+
+### 🔑 Super Admin Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/super-admin/hospitals` | Create a new hospital |
+| `GET` | `/super-admin/hospitals` | List all hospitals |
+| `PUT` | `/super-admin/hospitals/:id/status` | Activate/deactivate a hospital |
+| `POST` | `/super-admin/hospital-admins` | Create a hospital admin account |
+
+---
+
+### ❤️ Health Check
+
+```
+GET /health
+→ { "status": "ok", "timestamp": "..." }
+```
+
+---
+
+## 👥 User Roles
+
+### 🔵 Patient
+- Register/login with phone OTP
+- Browse hospitals and available doctors
+- Check real-time slot availability
+- Book and pay for appointments
+- View appointment history and queue status
+
+### 🟢 Doctor
+- View today's patient queue (per shift)
+- See the currently called patient highlighted
+- Mark consultations as complete
+- Auto-advances queue to next patient
+
+### 🟠 Hospital Admin
+- Manage all doctors in the hospital
+- Control the daily queue (Call Next / Skip / Complete)
+- View real-time queue statistics
+- Export daily appointment reports as CSV
+- Configure doctor shifts and fees
+
+### 🔴 Super Admin
+- Create and manage hospitals/clinics
+- Activate or deactivate hospitals
+- Create hospital admin accounts
+- Full system oversight
+
+---
+
+## 🔍 Features Explained
+
+### Token Queue System
+
+Tokens are assigned sequentially per doctor, per shift, per day. A database transaction ensures concurrency safety so two patients cannot receive the same token simultaneously:
 
 ```typescript
-// Database transaction ensures race-condition safety
 await prisma.$transaction(async (tx) => {
-  // Count existing tokens for doctor + date
-  const count = await tx.appointment.count({
-    where: { doctorId, appointmentDate }
+  const existing = await tx.appointment.count({
+    where: { doctorId, shiftId, appointmentDate, status: { not: 'CANCELLED' } }
   });
-  
-  const nextToken = count + 1;
-  
-  // Reject if exceeds daily limit
-  if (nextToken > doctor.dailyTokenLimit) {
-    throw new Error('No slots available');
+
+  if (existing >= shift.tokenLimit) {
+    throw new Error('No slots available for this shift');
   }
-  
-  // Create appointment with token number
+
   return await tx.appointment.create({
-    data: {
-      patientId, doctorId, appointmentDate,
-      tokenNumber: nextToken,
-      status: 'BOOKED'
-    }
+    data: { patientId, doctorId, hospitalId, shiftId, appointmentDate, tokenNumber: existing + 1 }
   });
 });
 ```
 
----
+### Appointment Scheduling
 
-## 🔧 Commands Reference
+- Patients select a hospital → doctor → shift → date
+- System shows real-time remaining slot count
+- Bookings up to 7 days ahead (configurable per hospital)
+- Leave dates are automatically blocked
 
-### Backend
-```bash
-npm run dev              # Start dev server
-npm run build            # Build for production
-npm run prisma:migrate   # Run database migrations
-npm run prisma:seed      # Seed demo data
-npm run prisma:studio    # Open Prisma Studio
-```
+### Real-Time Queue Updates
 
-### Frontend
-```bash
-npm run dev              # Start dev server
-npm run build            # Build for production
-npm run preview          # Preview built app
-```
+- Admins and doctors poll the queue endpoint to get live status
+- Appointment statuses: `PENDING` → `BOOKED` → `CALLED` → `COMPLETED` / `SKIPPED` / `CANCELLED`
+- Auto-shift logic moves unviewed past appointments to today (runs on server startup and every hour)
 
----
+### Payment Flow (Razorpay)
 
-## 📝 Environment Setup Summary
-
-✅ **PostgreSQL**: Already running on localhost:5432
-✅ **Fast2SMS**: API key included
-✅ **Razorpay**: Test keys included
-✅ **Upstash Redis**: Optional (in-memory fallback included)
-
-Just update `DATABASE_URL` in `.env` and you're ready to go!
+1. Patient books → appointment status: `PENDING`, payment: `PENDING`
+2. Patient clicks **Proceed to Payment**
+3. Razorpay hosted checkout opens (UPI, cards, netbanking)
+4. On success → appointment status: `BOOKED`, payment: `PAID`
+5. Test card: `4111 1111 1111 1111` | any future date | any CVV
 
 ---
 
-## 🐛 Troubleshooting
+## 🚢 Deployment
 
-### Database Connection Error
-```bash
-# Check if PostgreSQL is running
-psql -U postgres -c "SELECT 1"
+### Frontend — Vercel
 
-# If not running, start it
-# macOS: brew services start postgresql
-# Linux: sudo systemctl start postgresql
-# Windows: Services > PostgreSQL > Start
-```
+The frontend is deployed on Vercel. To deploy your own instance:
 
-### Prisma Errors
-```bash
-# Reset database (⚠️ deletes all data)
-npx prisma migrate reset
+1. Push the repository to GitHub.
+2. Import the project in [Vercel](https://vercel.com/), set the **root directory** to `frontend`.
+3. Set the build command to `npm run build` and the output directory to `dist`.
+4. Add the environment variable:
+   ```
+   VITE_API_URL=https://your-backend-url.com
+   ```
+5. Deploy.
 
-# Or create fresh migration
-npx prisma migrate dev --name init
-```
+### Backend — Railway / Render / Fly.io
 
-### Port Already in Use
-```bash
-# Change port in backend/.env
-PORT=5001
-
-# Or kill process using port 5000
-lsof -i :5000
-kill -9 <PID>
-```
+1. Create a new service pointing to the `backend` directory.
+2. Set all environment variables from `.env.example`.
+3. Set the start command to `npm run start`.
+4. Provision a PostgreSQL database and update `DATABASE_URL`.
 
 ---
 
-## ✨ Production Checklist
+## ⚙️ Configuration
 
-- [ ] Use strong `JWT_SECRET`
-- [ ] Replace API keys with production keys
+All backend configuration is managed via environment variables in `backend/.env`. Copy `backend/.env.example` as a starting point:
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DATABASE_URL` | ✅ | — | PostgreSQL connection string |
+| `DIRECT_URL` | — | — | Direct DB URL (Supabase/pooler setups) |
+| `JWT_SECRET` | ✅ | — | Secret key for signing JWTs |
+| `JWT_EXPIRY` | — | `7d` | JWT expiration duration |
+| `PORT` | — | `5000` | Backend server port |
+| `NODE_ENV` | — | `development` | `development` or `production` |
+| `FRONTEND_URL` | — | `http://localhost:5173` | Allowed CORS origin |
+| `FAST2SMS_API_KEY` | — | (dev key included) | Fast2SMS API key for OTP delivery |
+| `RAZORPAY_KEY_ID` | — | (test key included) | Razorpay key ID |
+| `RAZORPAY_KEY_SECRET` | — | (test key included) | Razorpay key secret |
+| `REDIS_URL` | — | — | Upstash Redis URL (optional; falls back to in-memory) |
+| `OTP_EXPIRY` | — | `300` | OTP validity in seconds |
+| `WEBHOOK_SECRET` | — | — | Razorpay webhook signing secret |
+
+> ⚠️ **Security:** Never commit your `.env` file. Always use strong, unique values for `JWT_SECRET` and API keys in production.
+
+### Production Checklist
+
+- [ ] Set a strong `JWT_SECRET`
+- [ ] Replace development API keys with production keys
 - [ ] Set `NODE_ENV=production`
-- [ ] Enable HTTPS
-- [ ] Configure CORS for production domain
-- [ ] Set up database backups
-- [ ] Enable error logging (Sentry)
-- [ ] Configure Redis for production
-- [ ] Add rate limiting
-- [ ] Set up monitoring
+- [ ] Configure `FRONTEND_URL` to your deployed frontend domain
+- [ ] Enable HTTPS on your backend host
+- [ ] Set up PostgreSQL backups
+- [ ] Configure Redis for production rate limiting
+- [ ] Add error monitoring (e.g., Sentry)
 
 ---
 
-**🎉 You're all set! Start with the backend, then frontend. Enjoy!**
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. **Fork** the repository and create a feature branch:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **Make your changes** — follow the existing code style (TypeScript, Prettier, ESLint).
+
+3. **Test your changes** thoroughly.
+
+4. **Commit** with a descriptive message:
+   ```bash
+   git commit -m "feat: add doctor leave calendar view"
+   ```
+
+5. **Push** and open a **Pull Request** against `main`.
+
+### Commit Message Convention
+
+Use [Conventional Commits](https://www.conventionalcommits.org/):
+
+| Prefix | Usage |
+|--------|-------|
+| `feat:` | New feature |
+| `fix:` | Bug fix |
+| `docs:` | Documentation change |
+| `refactor:` | Code refactor |
+| `chore:` | Build/config changes |
+
+---
+
+## 📄 License
+
+This project is licensed under the **ISC License**. See the [LICENSE](./LICENSE) file for details.
+
+---
+
+## 🆘 Support & Contact
+
+- 🐛 **Bug Reports & Feature Requests** — [Open an issue](https://github.com/KUNALM17/Token/issues)
+- 💬 **Discussions** — [GitHub Discussions](https://github.com/KUNALM17/Token/discussions)
+- 🌐 **Live Demo** — [https://token-sooty-tau.vercel.app](https://token-sooty-tau.vercel.app)
+
+---
+
+<p align="center">Built with ❤️ for better healthcare management</p>
